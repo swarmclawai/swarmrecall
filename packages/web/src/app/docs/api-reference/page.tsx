@@ -1,8 +1,8 @@
 export default function ApiReferencePage() {
   return (
-    <div className="prose-docs">
-      <h1>API Reference</h1>
-      <p>
+    <div className="prose-docs font-mono">
+      <h1 className="text-2xl font-bold text-[#00FF88] mb-2">## API Reference</h1>
+      <p className="text-[#888] text-sm mb-8">
         The SwarmRecall REST API is organized around resource modules. All
         endpoints accept and return JSON. Authentication is via Bearer token
         (either an agent API key or a Firebase ID token).
@@ -13,7 +13,7 @@ export default function ApiReferencePage() {
         <code>http://localhost:3300</code> (local development)
       </p>
 
-      <h2>Authentication</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Authentication</h2>
       <p>
         All requests must include an <code>Authorization</code> header:
       </p>
@@ -26,7 +26,7 @@ export default function ApiReferencePage() {
       </p>
 
       {/* Registration */}
-      <h2>Registration</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Registration</h2>
       <p>Agent self-registration and claim flow.</p>
 
       <h3>
@@ -84,7 +84,7 @@ export default function ApiReferencePage() {
       </p>
 
       {/* Memory */}
-      <h2>Memory</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Memory</h2>
       <p>Store and retrieve agent memories with semantic search.</p>
 
       <h3>
@@ -160,7 +160,7 @@ export default function ApiReferencePage() {
       <p>Delete a specific memory.</p>
 
       {/* Knowledge */}
-      <h2>Knowledge</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Knowledge</h2>
       <p>Entity and relationship graph management.</p>
 
       <h3>
@@ -241,7 +241,7 @@ export default function ApiReferencePage() {
       <p>Search across entities and relations.</p>
 
       {/* Learnings */}
-      <h2>Learnings</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Learnings</h2>
       <p>Pattern extraction and distilled insights.</p>
 
       <h3>
@@ -289,7 +289,7 @@ export default function ApiReferencePage() {
       <p>Semantic search across learnings.</p>
 
       {/* Skills */}
-      <h2>Skills</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Skills</h2>
       <p>Agent skill registry.</p>
 
       <h3>
@@ -344,7 +344,7 @@ export default function ApiReferencePage() {
       <p>Remove a skill.</p>
 
       {/* Owners */}
-      <h2>Owners</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Owners</h2>
       <p>Owner (dashboard user) management. Requires Firebase token.</p>
 
       <h3>
@@ -358,7 +358,7 @@ export default function ApiReferencePage() {
       <p>List all agents owned by the current user.</p>
 
       {/* Agents */}
-      <h2>Agents</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Agents</h2>
       <p>Agent management endpoints.</p>
 
       <h3>
@@ -377,7 +377,7 @@ export default function ApiReferencePage() {
       <p>Delete an agent and all its data. Requires owner token.</p>
 
       {/* API Keys */}
-      <h2>API Keys</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## API Keys</h2>
       <p>Manage API keys. Requires Firebase token.</p>
 
       <h3>

@@ -85,44 +85,20 @@ export default function ClaimPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#08080d]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366F1]" />
+      <div className="flex items-center justify-center min-h-screen bg-[#0A0A0A]">
+        <span className="font-mono text-[#00FF88] animate-pulse">$ loading...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#08080d] text-[#e2e2ec] font-sans overflow-x-hidden">
-      {/* Grid pattern overlay */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '64px 64px',
-        }}
-      />
-
+    <div className="min-h-screen bg-[#0A0A0A] text-[#E0E0E0] font-mono overflow-x-hidden">
       {/* Nav */}
-      <nav className="relative z-10 border-b border-white/[0.05]">
+      <nav className="relative z-10 border-b border-[#333]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-[#6366F1]/20 flex items-center justify-center">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#818CF8"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 6v6l4 2" />
-              </svg>
-            </div>
-            <span className="font-display font-bold text-lg tracking-tight text-white">
+            <span className="text-[#00FF88] text-sm">$</span>
+            <span className="font-bold text-lg tracking-tight text-white font-mono">
               SwarmRecall
             </span>
           </Link>
@@ -130,42 +106,40 @@ export default function ClaimPage() {
       </nav>
 
       <main className="relative z-10 flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.08)_0%,transparent_70%)] pointer-events-none" />
-
         <div className="w-full max-w-md space-y-8 relative">
           {/* Header */}
-          <div className="text-center space-y-3">
-            <h1 className="font-display text-3xl font-bold tracking-tight text-white">
-              Claim your agent
+          <div className="space-y-3">
+            <h1 className="text-2xl font-bold tracking-tight text-[#00FF88] font-mono">
+              &gt; claim your agent
             </h1>
-            <p className="text-[#7a7a96]">
+            <p className="text-[#888] text-sm font-mono">
               Enter the claim code your agent gave you to link it to your
               dashboard.
             </p>
           </div>
 
-          <div className="glass-card rounded-2xl p-8 space-y-6">
+          <div className="bg-[#111] border border-[#333] p-8 space-y-6">
             {error && (
-              <div className="rounded-lg bg-[#F43F5E]/10 border border-[#F43F5E]/20 px-4 py-3 text-sm text-[#F43F5E]">
-                {error}
+              <div className="bg-[#1a0000] border border-[#F43F5E]/40 px-4 py-3 text-sm text-[#F43F5E] font-mono">
+                <span className="text-[#F43F5E]/60">error: </span>{error}
               </div>
             )}
 
             {success && (
-              <div className="rounded-lg bg-[#34D399]/10 border border-[#34D399]/20 px-4 py-3 text-sm text-[#34D399]">
-                {success}
+              <div className="bg-[#001a0d] border border-[#00FF88]/40 px-4 py-3 text-sm text-[#00FF88] font-mono">
+                <span className="text-[#00FF88]/60">&gt; </span>{success}
               </div>
             )}
 
             {!user ? (
               <>
-                <p className="text-sm text-[#7a7a96] text-center">
-                  Sign in first to claim your agent.
+                <p className="text-sm text-[#888] text-center font-mono">
+                  // sign in first to claim your agent
                 </p>
                 <div className="space-y-3">
                   <button
                     onClick={handleGoogleLogin}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-[#e2e2ec] hover:bg-white/[0.06] transition-colors cursor-pointer"
+                    className="flex w-full items-center justify-center gap-3 border border-[#333] bg-[#0A0A0A] px-4 py-2.5 text-sm font-medium text-[#E0E0E0] hover:bg-[#1a1a1a] hover:border-[#555] transition-colors cursor-pointer font-mono"
                   >
                     <svg className="h-5 w-5" viewBox="0 0 24 24">
                       <path
@@ -190,7 +164,7 @@ export default function ClaimPage() {
 
                   <button
                     onClick={handleGitHubLogin}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-[#e2e2ec] hover:bg-white/[0.06] transition-colors cursor-pointer"
+                    className="flex w-full items-center justify-center gap-3 border border-[#333] bg-[#0A0A0A] px-4 py-2.5 text-sm font-medium text-[#E0E0E0] hover:bg-[#1a1a1a] hover:border-[#555] transition-colors cursor-pointer font-mono"
                   >
                     <svg
                       className="h-5 w-5"
@@ -212,9 +186,9 @@ export default function ClaimPage() {
                 <div>
                   <label
                     htmlFor="claimCode"
-                    className="block text-sm font-medium text-[#7a7a96] mb-1"
+                    className="block text-sm text-[#888] mb-1 font-mono"
                   >
-                    Claim Code
+                    $ claim_code
                   </label>
                   <input
                     id="claimCode"
@@ -222,26 +196,26 @@ export default function ClaimPage() {
                     required
                     value={claimCode}
                     onChange={(e) => setClaimCode(e.target.value)}
-                    className="block w-full rounded-xl border border-white/[0.07] bg-[#0d0d14] px-3 py-2.5 text-sm text-[#e2e2ec] placeholder-[#42425c] focus:border-[#6366F1]/50 focus:ring-1 focus:ring-[#6366F1]/50 focus:outline-none transition-colors font-mono tracking-wider"
+                    className="block w-full border border-[#333] bg-[#0A0A0A] px-3 py-2.5 text-sm text-[#E0E0E0] placeholder-[#555] focus:border-[#00FF88] focus:ring-1 focus:ring-[#00FF88] focus:outline-none transition-colors font-mono tracking-wider"
                     placeholder="e.g. ABC123XYZ"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={submitting || !claimCode.trim()}
-                  className="w-full rounded-xl bg-[#6366F1] hover:bg-[#818CF8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 transition-colors cursor-pointer shadow-[0_0_20px_rgba(99,102,241,0.2)]"
+                  className="w-full bg-[#00FF88] hover:bg-[#00cc6e] px-4 py-2.5 text-sm font-bold text-black disabled:opacity-50 transition-colors cursor-pointer font-mono border-0"
                 >
-                  {submitting ? 'Claiming...' : 'Claim Agent'}
+                  {submitting ? '> claiming...' : '> claim agent'}
                 </button>
               </form>
             )}
           </div>
 
-          <p className="text-center text-xs text-[#42425c]">
+          <p className="text-center text-xs text-[#555] font-mono">
             Don&apos;t have a claim code?{' '}
             <Link
               href="/docs/getting-started"
-              className="text-[#818CF8] hover:underline"
+              className="text-[#00FF88] hover:underline"
             >
               Get started
             </Link>

@@ -21,7 +21,7 @@ export default function DocsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#08080d] flex">
+    <div className="min-h-screen bg-[#0A0A0A] flex font-mono">
       <DocsSidebar items={NAV_ITEMS} />
       <main className="flex-1 min-w-0 md:ml-72">
         <div className="max-w-3xl mx-auto px-6 py-12 md:px-10">

@@ -1,14 +1,14 @@
 export default function SdkPage() {
   return (
-    <div className="prose-docs">
-      <h1>SDK</h1>
-      <p>
+    <div className="prose-docs font-mono">
+      <h1 className="text-2xl font-bold text-[#00FF88] mb-2">## SDK</h1>
+      <p className="text-[#888] text-sm mb-8">
         The SwarmRecall TypeScript SDK provides a fully typed client for
         interacting with the SwarmRecall API. It handles authentication,
         request serialization, and error handling.
       </p>
 
-      <h2>Installation</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Installation</h2>
       <pre>
         <code>npm install @swarmrecall/sdk</code>
       </pre>
@@ -17,7 +17,7 @@ export default function SdkPage() {
         <code>{`pnpm add @swarmrecall/sdk\nyarn add @swarmrecall/sdk`}</code>
       </pre>
 
-      <h2>Client Setup</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Client Setup</h2>
       <pre>
         <code>
           {`import { SwarmRecall } from '@swarmrecall/sdk';
@@ -30,7 +30,7 @@ const recall = new SwarmRecall({
         </code>
       </pre>
 
-      <h2>Namespaces</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Namespaces</h2>
       <p>
         The SDK is organized into namespaces that map to API modules.
       </p>
@@ -157,7 +157,7 @@ await recall.agent.update({
         </code>
       </pre>
 
-      <h2>Error Handling</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Error Handling</h2>
       <p>
         The SDK throws <code>SwarmRecallError</code> for API errors. You can
         catch and inspect them:
@@ -178,7 +178,7 @@ try {
         </code>
       </pre>
 
-      <h2>TypeScript Types</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## TypeScript Types</h2>
       <p>
         All request and response types are exported from the package:
       </p>

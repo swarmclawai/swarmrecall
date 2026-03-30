@@ -12,6 +12,7 @@ import agentsRouter from './routes/agents.js';
 import apikeysRouter from './routes/apikeys.js';
 import registerRouter from './routes/register.js';
 import claimRouter from './routes/claim.js';
+import exportRouter from './routes/export.js';
 import { apiKeyAuth, firebaseAuth } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { RATE_LIMIT_REGISTER } from '@swarmrecall/shared';
@@ -47,6 +48,7 @@ app.route('/api/v1/memory', (() => { const r = new Hono(); r.use('*', rateLimit(
 app.route('/api/v1/knowledge', (() => { const r = new Hono(); r.use('*', rateLimit()); r.use('*', apiKeyAuth); r.route('/', knowledgeRouter); return r; })());
 app.route('/api/v1/learnings', (() => { const r = new Hono(); r.use('*', rateLimit()); r.use('*', apiKeyAuth); r.route('/', learningsRouter); return r; })());
 app.route('/api/v1/skills', (() => { const r = new Hono(); r.use('*', rateLimit()); r.use('*', apiKeyAuth); r.route('/', skillsRouter); return r; })());
+app.route('/api/v1/export', (() => { const r = new Hono(); r.use('*', rateLimit()); r.use('*', apiKeyAuth); r.route('/', exportRouter); return r; })());
 
 // Dashboard routes (Firebase auth + rate limiting)
 app.route('/api/v1/owners', (() => { const r = new Hono(); r.use('*', rateLimit()); r.use('*', firebaseAuth); r.route('/', ownersRouter); return r; })());
