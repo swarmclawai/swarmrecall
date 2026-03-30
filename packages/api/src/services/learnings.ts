@@ -4,7 +4,13 @@ import { learnings, learningPatterns } from '../db/schema.js';
 import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
 import { searchIndex } from './search.js';
 import { logAuditEvent } from './audit.js';
-import { getReadablePoolIds, validatePoolWrite, annotatePoolNames } from './poolAccess.js';
+import {
+  getReadablePoolIds,
+  validatePoolWrite,
+  annotatePoolNames,
+  validatePoolsWriteScope,
+  resolvePoolNames,
+} from './poolAccess.js';
 import {
   SIMILARITY_THRESHOLD,
   PROMOTION_THRESHOLD,
@@ -29,6 +35,105 @@ type SearchableLearningRow = Pick<
   | 'poolId'
   | 'archivedAt'
 >;
+type LearningSearchHit = { id: string; _rankingScore?: number; rankingScore?: number };
+type PublicLearningRow = Pick<
+  typeof learnings.$inferSelect,
+  | 'id'
+  | 'agentId'
+  | 'ownerId'
+  | 'category'
+  | 'summary'
+  | 'details'
+  | 'priority'
+  | 'status'
+  | 'area'
+  | 'suggestedAction'
+  | 'resolution'
+  | 'resolutionCommit'
+  | 'tags'
+  | 'metadata'
+  | 'poolId'
+  | 'archivedAt'
+  | 'createdAt'
+  | 'updatedAt'
+>;
+
+const PUBLIC_LEARNING_SELECT = {
+  id: learnings.id,
+  agentId: learnings.agentId,
+  ownerId: learnings.ownerId,
+  category: learnings.category,
+  summary: learnings.summary,
+  details: learnings.details,
+  priority: learnings.priority,
+  status: learnings.status,
+  area: learnings.area,
+  suggestedAction: learnings.suggestedAction,
+  resolution: learnings.resolution,
+  resolutionCommit: learnings.resolutionCommit,
+  tags: learnings.tags,
+  metadata: learnings.metadata,
+  poolId: learnings.poolId,
+  archivedAt: learnings.archivedAt,
+  createdAt: learnings.createdAt,
+  updatedAt: learnings.updatedAt,
+} as const;
+
+function buildLearningAccessCondition(agentId: string, readablePoolIds: string[]) {
+  return readablePoolIds.length > 0
+    ? or(
+        and(eq(learnings.agentId, agentId), isNull(learnings.poolId)),
+        inArray(learnings.poolId, readablePoolIds),
+      )!
+    : and(eq(learnings.agentId, agentId), isNull(learnings.poolId))!;
+}
+
+function buildPatternAccessCondition(agentId: string, readablePoolIds: string[]) {
+  return readablePoolIds.length > 0
+    ? or(
+        and(eq(learningPatterns.agentId, agentId), isNull(learningPatterns.poolId)),
+        inArray(learningPatterns.poolId, readablePoolIds),
+      )!
+    : and(eq(learningPatterns.agentId, agentId), isNull(learningPatterns.poolId))!;
+}
+
+function buildLearningSearchFilter(ownerId: string, agentId: string, readablePoolIds: string[]) {
+  const privateFilter = `(agentId = "${agentId}" AND poolId IS NULL)`;
+  if (readablePoolIds.length === 0) {
+    return `ownerId = "${ownerId}" AND ${privateFilter}`;
+  }
+
+  const poolFilter = readablePoolIds.map((id) => `poolId = "${id}"`).join(' OR ');
+  return `ownerId = "${ownerId}" AND (${privateFilter} OR ${poolFilter})`;
+}
+
+function getTextScore(hit: LearningSearchHit) {
+  return hit._rankingScore ?? hit.rankingScore ?? 0.5;
+}
+
+function toSearchableLearning(row: PublicLearningRow) {
+  return {
+    id: row.id,
+    agentId: row.agentId,
+    ownerId: row.ownerId,
+    category: row.category,
+    summary: row.summary,
+    details: row.details,
+    priority: row.priority,
+    status: row.status,
+    area: row.area,
+    suggestedAction: row.suggestedAction,
+    resolution: row.resolution,
+    resolutionCommit: row.resolutionCommit,
+    tags: row.tags,
+    metadata: row.metadata,
+    poolId: row.poolId,
+    poolName: null as string | null,
+    archivedAt: row.archivedAt,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
 export async function syncLearningSearchDocument(row: SearchableLearningRow) {
   if (row.archivedAt) {
@@ -64,9 +169,15 @@ function vectorToSql(vec: number[]): string {
 // logLearning
 // ---------------------------------------------------------------------------
 
-export async function logLearning(agentId: string, ownerId: string, data: LearningCreate) {
+export async function logLearning(
+  agentId: string,
+  ownerId: string,
+  data: LearningCreate,
+  scopes?: string[],
+) {
   // 0. Validate pool write access if targeting a pool
   if (data.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, data.poolId, 'learnings');
   }
 
@@ -98,10 +209,22 @@ export async function logLearning(agentId: string, ownerId: string, data: Learni
   // 4. Pattern detection — find similar learnings
   let patternId: string | null = null;
   if (embedding.length > 0) {
-    const similar = await findSimilarLearnings(agentId, ownerId, embedding, learning.id);
+    const similar = await findSimilarLearnings(
+      agentId,
+      ownerId,
+      embedding,
+      learning.id,
+      data.poolId ?? null,
+    );
     if (similar.length > 0) {
       const similarIds = similar.map((s) => s.id);
-      patternId = await updateOrCreatePattern(agentId, ownerId, learning.id, similarIds);
+      patternId = await updateOrCreatePattern(
+        agentId,
+        ownerId,
+        learning.id,
+        similarIds,
+        data.poolId ?? null,
+      );
     }
   }
 
@@ -128,20 +251,21 @@ export async function findSimilarLearnings(
   ownerId: string,
   embedding: number[],
   excludeId?: string,
+  poolId?: string | null,
 ) {
-  const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
   const vectorStr = vectorToSql(embedding);
-
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(learnings.agentId, agentId), inArray(learnings.poolId, readablePoolIds))!
-    : eq(learnings.agentId, agentId);
 
   const conditions = [
     eq(learnings.ownerId, ownerId),
-    agentCondition,
     isNull(learnings.archivedAt),
     sql`${learnings.embedding} IS NOT NULL`,
   ];
+
+  if (poolId) {
+    conditions.push(eq(learnings.poolId, poolId));
+  } else {
+    conditions.push(eq(learnings.agentId, agentId), isNull(learnings.poolId));
+  }
 
   if (excludeId) {
     conditions.push(sql`${learnings.id} != ${excludeId}`);
@@ -170,24 +294,22 @@ export async function updateOrCreatePattern(
   ownerId: string,
   learningId: string,
   similarIds: string[],
+  poolId?: string | null,
 ): Promise<string> {
   // Check if any of the similar learnings already belong to a pattern
   const allIds = [learningId, ...similarIds];
-
-  const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
-
-  const patternCondition = readablePoolIds.length > 0
-    ? or(eq(learningPatterns.agentId, agentId), inArray(learningPatterns.poolId, readablePoolIds))!
-    : eq(learningPatterns.agentId, agentId);
 
   const existingPatterns = await db
     .select()
     .from(learningPatterns)
     .where(
-      and(
-        eq(learningPatterns.ownerId, ownerId),
-        patternCondition,
-      ),
+      poolId
+        ? and(eq(learningPatterns.ownerId, ownerId), eq(learningPatterns.poolId, poolId))
+        : and(
+            eq(learningPatterns.ownerId, ownerId),
+            eq(learningPatterns.agentId, agentId),
+            isNull(learningPatterns.poolId),
+          ),
     );
 
   // Find a pattern that contains any of the similar IDs
@@ -227,7 +349,7 @@ export async function updateOrCreatePattern(
       recurrenceCount: allIds.length,
       sessionCount: 1,
       learningIds: allIds,
-      poolId: null,
+      poolId: poolId ?? null,
     })
     .returning();
 
@@ -240,10 +362,7 @@ export async function updateOrCreatePattern(
 
 export async function listLearnings(agentId: string, ownerId: string, filters: LearningList) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
-
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(learnings.agentId, agentId), inArray(learnings.poolId, readablePoolIds))!
-    : eq(learnings.agentId, agentId);
+  const agentCondition = buildLearningAccessCondition(agentId, readablePoolIds);
 
   const conditions: SQL[] = [
     eq(learnings.ownerId, ownerId),
@@ -317,69 +436,98 @@ export async function searchLearnings(
   minScore: number,
 ) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
-
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(learnings.agentId, agentId), inArray(learnings.poolId, readablePoolIds))!
-    : eq(learnings.agentId, agentId);
+  const agentCondition = buildLearningAccessCondition(agentId, readablePoolIds);
 
   // Build Meilisearch filter including pool data
-  let meiliFilter = `ownerId = "${ownerId}" AND agentId = "${agentId}"`;
-  if (readablePoolIds.length > 0) {
-    const poolFilter = readablePoolIds.map((id) => `poolId = "${id}"`).join(' OR ');
-    meiliFilter = `ownerId = "${ownerId}" AND (agentId = "${agentId}" OR ${poolFilter})`;
-  }
+  const meiliFilter = buildLearningSearchFilter(ownerId, agentId, readablePoolIds);
 
   // Generate embedding for semantic search
   const embedding = await generateQueryEmbedding(query);
 
-  if (embedding.length === 0) {
-    // Fall back to Meilisearch text search
-    const results = await searchIndex.searchDocuments(
-      'learnings',
-      query,
-      meiliFilter,
-      limit,
-    );
-    return { data: results.hits, total: results.estimatedTotalHits };
+  let vectorResults: Array<PublicLearningRow & { score: number }> = [];
+  if (embedding.length > 0) {
+    const vectorStr = vectorToSql(embedding);
+    vectorResults = await db
+      .select({
+        ...PUBLIC_LEARNING_SELECT,
+        score: sql<number>`1 - (${learnings.embedding} <=> ${sql.raw(`'${vectorStr}'::vector`)})`,
+      })
+      .from(learnings)
+      .where(
+        and(
+          eq(learnings.ownerId, ownerId),
+          agentCondition,
+          isNull(learnings.archivedAt),
+          sql`${learnings.embedding} IS NOT NULL`,
+        ),
+      )
+      .orderBy(sql`1 - (${learnings.embedding} <=> ${sql.raw(`'${vectorStr}'::vector`)}) DESC`)
+      .limit(limit);
   }
 
-  const vectorStr = vectorToSql(embedding);
+  const textResults = await searchIndex.searchDocuments(
+    'learnings',
+    query,
+    meiliFilter,
+    limit,
+  );
 
-  const rows = await db
-    .select({
-      id: learnings.id,
-      agentId: learnings.agentId,
-      ownerId: learnings.ownerId,
-      category: learnings.category,
-      summary: learnings.summary,
-      details: learnings.details,
-      priority: learnings.priority,
-      status: learnings.status,
-      area: learnings.area,
-      suggestedAction: learnings.suggestedAction,
-      resolution: learnings.resolution,
-      tags: learnings.tags,
-      metadata: learnings.metadata,
-      poolId: learnings.poolId,
-      createdAt: learnings.createdAt,
-      updatedAt: learnings.updatedAt,
-      score: sql<number>`1 - (${learnings.embedding} <=> ${sql.raw(`'${vectorStr}'::vector`)})`,
-    })
-    .from(learnings)
-    .where(
-      and(
-        eq(learnings.ownerId, ownerId),
-        agentCondition,
-        isNull(learnings.archivedAt),
-        sql`${learnings.embedding} IS NOT NULL`,
-      ),
-    )
-    .orderBy(sql`1 - (${learnings.embedding} <=> ${sql.raw(`'${vectorStr}'::vector`)}) DESC`)
-    .limit(limit);
+  const textScores = new Map(
+    (textResults.hits as LearningSearchHit[]).map((hit) => [hit.id, getTextScore(hit)]),
+  );
 
-  const filtered = rows.filter((r) => r.score >= minScore);
-  const annotated = await annotatePoolNames(filtered);
-  return { data: annotated, total: annotated.length };
+  const merged = vectorResults
+    .map((row) => ({
+      data: toSearchableLearning(row),
+      score: Math.max(row.score, textScores.get(row.id) ?? 0),
+    }))
+    .filter((row) => row.score >= minScore);
+
+  const mergedIds = new Set(merged.map((row) => row.data.id));
+  const textOnlyIds = (textResults.hits as LearningSearchHit[])
+    .map((hit) => hit.id)
+    .filter((id) => !mergedIds.has(id));
+
+  if (textOnlyIds.length > 0) {
+    const textRows = await db
+      .select(PUBLIC_LEARNING_SELECT)
+      .from(learnings)
+      .where(
+        and(
+          eq(learnings.ownerId, ownerId),
+          agentCondition,
+          isNull(learnings.archivedAt),
+          inArray(learnings.id, textOnlyIds),
+        ),
+      );
+
+    const textRowMap = new Map(textRows.map((row) => [row.id, row]));
+
+    for (const id of textOnlyIds) {
+      const row = textRowMap.get(id);
+      if (!row) continue;
+
+      const score = textScores.get(id) ?? 0.5;
+      if (score >= minScore) {
+        merged.push({ data: toSearchableLearning(row), score });
+      }
+    }
+  }
+
+  merged.sort((a, b) => b.score - a.score);
+
+  const poolIds = [...new Set(merged.filter((row) => row.data.poolId).map((row) => row.data.poolId!))];
+  if (poolIds.length > 0) {
+    const names = await resolvePoolNames(poolIds);
+    for (const row of merged) {
+      if (row.data.poolId) row.data.poolName = names.get(row.data.poolId) ?? null;
+    }
+  }
+
+  return {
+    data: merged.slice(0, limit).map((row) => ({ ...row.data, score: row.score })),
+    total: merged.length,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -419,11 +567,12 @@ export async function getLearning(id: string, agentId: string, ownerId: string) 
 
   if (!row) return null;
 
-  // Check access: own data or pool data the agent can read
-  if (row.agentId !== agentId) {
-    if (!row.poolId) return null;
+  // Check access: private data belongs to the agent; pool data requires membership.
+  if (row.poolId) {
     const readable = await getReadablePoolIds(agentId, ownerId, 'learnings');
     if (!readable.includes(row.poolId)) return null;
+  } else if (row.agentId !== agentId) {
+    return null;
   }
 
   const [annotated] = await annotatePoolNames([row]);
@@ -439,11 +588,13 @@ export async function updateLearning(
   agentId: string,
   ownerId: string,
   data: LearningUpdate,
+  scopes?: string[],
 ) {
   // Check if this is pool data that requires write access
   const existing = await getLearning(id, agentId, ownerId);
   if (!existing) return null;
   if (existing.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, existing.poolId, 'learnings');
   } else if (existing.agentId !== agentId) {
     return null;
@@ -465,9 +616,11 @@ export async function updateLearning(
 
   if (updated) {
     await syncLearningSearchDocument(updated);
+    const [annotated] = await annotatePoolNames([updated]);
+    return annotated;
   }
 
-  return updated ?? null;
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -476,12 +629,9 @@ export async function updateLearning(
 
 export async function getPatterns(agentId: string, ownerId: string) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
+  const agentCondition = buildPatternAccessCondition(agentId, readablePoolIds);
 
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(learningPatterns.agentId, agentId), inArray(learningPatterns.poolId, readablePoolIds))!
-    : eq(learningPatterns.agentId, agentId);
-
-  return db
+  const rows = await db
     .select()
     .from(learningPatterns)
     .where(
@@ -492,6 +642,8 @@ export async function getPatterns(agentId: string, ownerId: string) {
       ),
     )
     .orderBy(desc(learningPatterns.recurrenceCount));
+
+  return annotatePoolNames(rows);
 }
 
 // ---------------------------------------------------------------------------
@@ -500,15 +652,12 @@ export async function getPatterns(agentId: string, ownerId: string) {
 
 export async function getPromotionCandidates(agentId: string, ownerId: string) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
-
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(learningPatterns.agentId, agentId), inArray(learningPatterns.poolId, readablePoolIds))!
-    : eq(learningPatterns.agentId, agentId);
+  const agentCondition = buildPatternAccessCondition(agentId, readablePoolIds);
 
   const windowStart = new Date();
   windowStart.setDate(windowStart.getDate() - PROMOTION_WINDOW_DAYS);
 
-  return db
+  const rows = await db
     .select()
     .from(learningPatterns)
     .where(
@@ -522,6 +671,8 @@ export async function getPromotionCandidates(agentId: string, ownerId: string) {
       ),
     )
     .orderBy(desc(learningPatterns.recurrenceCount));
+
+  return annotatePoolNames(rows);
 }
 
 // ---------------------------------------------------------------------------
@@ -533,6 +684,7 @@ export async function linkLearnings(
   targetId: string,
   agentId: string,
   ownerId: string,
+  scopes?: string[],
 ) {
   // Verify both learnings exist and belong to the same agent/owner
   const [source, target] = await Promise.all([
@@ -540,11 +692,27 @@ export async function linkLearnings(
     getLearning(targetId, agentId, ownerId),
   ]);
 
-  if (!source) return { error: 'Source learning not found' };
-  if (!target) return { error: 'Target learning not found' };
+  if (!source) return { error: 'Source learning not found', status: 404 as const };
+  if (!target) return { error: 'Target learning not found', status: 404 as const };
+  if (source.poolId !== target.poolId) {
+    return {
+      error: 'Learnings must belong to the same pool context to be linked',
+      status: 400 as const,
+    };
+  }
+  if (source.poolId) {
+    validatePoolsWriteScope(scopes);
+    await validatePoolWrite(agentId, ownerId, source.poolId, 'learnings');
+  }
 
   // Find or create a pattern containing both
-  const patternId = await updateOrCreatePattern(agentId, ownerId, learningId, [targetId]);
+  const patternId = await updateOrCreatePattern(
+    agentId,
+    ownerId,
+    learningId,
+    [targetId],
+    source.poolId,
+  );
 
   await logAuditEvent({
     eventType: 'learning.linked',

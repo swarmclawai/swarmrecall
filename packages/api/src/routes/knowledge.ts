@@ -48,7 +48,7 @@ knowledge.post('/entities', requireScope('knowledge.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const row = await createEntity(auth.agentId, auth.ownerId, parsed.data);
+  const row = await createEntity(auth.agentId, auth.ownerId, parsed.data, auth.scopes);
   return c.json(row, 201);
 });
 
@@ -99,7 +99,7 @@ knowledge.patch('/entities/:id', requireScope('knowledge.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const row = await updateEntity(id, auth.agentId, auth.ownerId, parsed.data);
+  const row = await updateEntity(id, auth.agentId, auth.ownerId, parsed.data, auth.scopes);
   if (!row) {
     return c.json({ error: 'Entity not found' }, 404);
   }
@@ -115,7 +115,7 @@ knowledge.delete('/entities/:id', requireScope('knowledge.write'), async (c) => 
     return c.json({ error: 'Missing entity id' }, 400);
   }
 
-  const row = await archiveEntity(id, auth.agentId, auth.ownerId);
+  const row = await archiveEntity(id, auth.agentId, auth.ownerId, auth.scopes);
   if (!row) {
     return c.json({ error: 'Entity not found' }, 404);
   }
@@ -141,7 +141,7 @@ knowledge.post('/relations', requireScope('knowledge.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const row = await createRelation(auth.agentId, auth.ownerId, parsed.data);
+  const row = await createRelation(auth.agentId, auth.ownerId, parsed.data, auth.scopes);
   if (!row) {
     return c.json({ error: 'One or both entities not found or do not belong to this agent' }, 404);
   }
@@ -170,7 +170,7 @@ knowledge.delete('/relations/:id', requireScope('knowledge.write'), async (c) =>
     return c.json({ error: 'Missing relation id' }, 400);
   }
 
-  const row = await deleteRelation(id, auth.agentId, auth.ownerId);
+  const row = await deleteRelation(id, auth.agentId, auth.ownerId, auth.scopes);
   if (!row) {
     return c.json({ error: 'Relation not found' }, 404);
   }

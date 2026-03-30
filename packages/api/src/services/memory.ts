@@ -4,13 +4,95 @@ import { memories, memorySessions } from '../db/schema.js';
 import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
 import { searchIndex } from './search.js';
 import { logAuditEvent } from './audit.js';
-import { getReadablePoolIds, validatePoolWrite, annotatePoolNames, resolvePoolNames } from './poolAccess.js';
+import {
+  getReadablePoolIds,
+  validatePoolWrite,
+  annotatePoolNames,
+  resolvePoolNames,
+  validatePoolsWriteScope,
+} from './poolAccess.js';
 import type { MemoryCreate, MemoryUpdate, MemoryList, SessionUpdate } from '@swarmrecall/shared';
 
 type SearchableMemoryRow = Pick<
   typeof memories.$inferSelect,
   'id' | 'ownerId' | 'agentId' | 'content' | 'category' | 'tags' | 'poolId' | 'archivedAt'
 >;
+
+type MemorySearchHit = { id: string; _rankingScore?: number; rankingScore?: number };
+type PublicMemoryRow = Pick<
+  typeof memories.$inferSelect,
+  | 'id'
+  | 'agentId'
+  | 'ownerId'
+  | 'content'
+  | 'category'
+  | 'importance'
+  | 'tags'
+  | 'metadata'
+  | 'sessionId'
+  | 'poolId'
+  | 'archivedAt'
+  | 'createdAt'
+  | 'updatedAt'
+>;
+
+const PUBLIC_MEMORY_SELECT = {
+  id: memories.id,
+  agentId: memories.agentId,
+  ownerId: memories.ownerId,
+  content: memories.content,
+  category: memories.category,
+  importance: memories.importance,
+  tags: memories.tags,
+  metadata: memories.metadata,
+  sessionId: memories.sessionId,
+  poolId: memories.poolId,
+  archivedAt: memories.archivedAt,
+  createdAt: memories.createdAt,
+  updatedAt: memories.updatedAt,
+} as const;
+
+function buildMemoryAccessCondition(agentId: string, readablePoolIds: string[]) {
+  return readablePoolIds.length > 0
+    ? or(
+        and(eq(memories.agentId, agentId), isNull(memories.poolId)),
+        inArray(memories.poolId, readablePoolIds),
+      )!
+    : and(eq(memories.agentId, agentId), isNull(memories.poolId))!;
+}
+
+function buildMemorySearchFilter(ownerId: string, agentId: string, readablePoolIds: string[]) {
+  const privateFilter = `(agentId = "${agentId}" AND poolId IS NULL)`;
+  if (readablePoolIds.length === 0) {
+    return `ownerId = "${ownerId}" AND ${privateFilter}`;
+  }
+
+  const poolFilter = readablePoolIds.map((id) => `poolId = "${id}"`).join(' OR ');
+  return `ownerId = "${ownerId}" AND (${privateFilter} OR ${poolFilter})`;
+}
+
+function getTextScore(hit: MemorySearchHit) {
+  return hit._rankingScore ?? hit.rankingScore ?? 0.5;
+}
+
+function toSearchableMemory(row: PublicMemoryRow) {
+  return {
+    id: row.id,
+    agentId: row.agentId,
+    ownerId: row.ownerId,
+    content: row.content,
+    category: row.category,
+    importance: row.importance,
+    tags: row.tags,
+    metadata: row.metadata,
+    sessionId: row.sessionId,
+    poolId: row.poolId,
+    poolName: null as string | null,
+    archivedAt: row.archivedAt,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
 export async function syncMemorySearchDocument(row: SearchableMemoryRow) {
   if (row.archivedAt) {
@@ -33,8 +115,9 @@ export async function syncMemorySearchDocument(row: SearchableMemoryRow) {
 // Memories
 // ---------------------------------------------------------------------------
 
-export async function storeMemory(agentId: string, ownerId: string, data: MemoryCreate) {
+export async function storeMemory(agentId: string, ownerId: string, data: MemoryCreate, scopes?: string[]) {
   if (data.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, data.poolId, 'memory');
   }
 
@@ -75,10 +158,7 @@ export async function storeMemory(agentId: string, ownerId: string, data: Memory
 
 export async function listMemories(agentId: string, ownerId: string, filters: MemoryList) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'memory');
-
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(memories.agentId, agentId), inArray(memories.poolId, readablePoolIds))!
-    : eq(memories.agentId, agentId);
+  const agentCondition = buildMemoryAccessCondition(agentId, readablePoolIds);
 
   const conditions = [
     eq(memories.ownerId, ownerId),
@@ -122,29 +202,16 @@ export async function searchMemories(
 ) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'memory');
   const embedding = await generateQueryEmbedding(query);
-
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(memories.agentId, agentId), inArray(memories.poolId, readablePoolIds))!
-    : eq(memories.agentId, agentId);
+  const agentCondition = buildMemoryAccessCondition(agentId, readablePoolIds);
 
   // Vector search
-  let vectorResults: { id: string; content: string; category: string; importance: number | null; tags: string[] | null; metadata: unknown; sessionId: string | null; poolId: string | null; archivedAt: Date | null; createdAt: Date; updatedAt: Date; score: number }[] = [];
+  let vectorResults: Array<PublicMemoryRow & { score: number }> = [];
 
   if (embedding.length > 0) {
     const vectorStr = `[${embedding.join(',')}]`;
     vectorResults = await db
       .select({
-        id: memories.id,
-        content: memories.content,
-        category: memories.category,
-        importance: memories.importance,
-        tags: memories.tags,
-        metadata: memories.metadata,
-        sessionId: memories.sessionId,
-        poolId: memories.poolId,
-        archivedAt: memories.archivedAt,
-        createdAt: memories.createdAt,
-        updatedAt: memories.updatedAt,
+        ...PUBLIC_MEMORY_SELECT,
         score: sql<number>`1 - (${memories.embedding} <=> ${vectorStr})`,
       })
       .from(memories)
@@ -160,41 +227,55 @@ export async function searchMemories(
       .limit(limit);
   }
 
-  // Meilisearch text search — build filter to include pool data
-  let meiliFilter = `ownerId = "${ownerId}" AND agentId = "${agentId}"`;
-  if (readablePoolIds.length > 0) {
-    const poolFilter = readablePoolIds.map((id) => `poolId = "${id}"`).join(' OR ');
-    meiliFilter = `ownerId = "${ownerId}" AND (agentId = "${agentId}" OR ${poolFilter})`;
-  }
-
   const textResults = await searchIndex.searchDocuments(
     'memories',
     query,
-    meiliFilter,
+    buildMemorySearchFilter(ownerId, agentId, readablePoolIds),
     limit,
   );
 
-  // Merge: use vector results as primary, boost with text hits
-  const textHitIds = new Set((textResults.hits as Array<{ id: string }>).map((h) => h.id));
+  const textScores = new Map(
+    (textResults.hits as MemorySearchHit[]).map((hit) => [hit.id, getTextScore(hit)]),
+  );
+
   const merged = vectorResults
     .map((r) => ({
-      data: {
-        id: r.id,
-        content: r.content,
-        category: r.category,
-        importance: r.importance,
-        tags: r.tags,
-        metadata: r.metadata,
-        sessionId: r.sessionId,
-        poolId: r.poolId,
-        poolName: null as string | null,
-        archivedAt: r.archivedAt,
-        createdAt: r.createdAt,
-        updatedAt: r.updatedAt,
-      },
-      score: textHitIds.has(r.id) ? Math.min(r.score + 0.05, 1) : r.score,
+      data: toSearchableMemory(r),
+      score: Math.max(r.score, textScores.get(r.id) ?? 0),
     }))
     .filter((r) => r.score >= minScore);
+
+  const mergedIds = new Set(merged.map((r) => r.data.id));
+  const textOnlyIds = (textResults.hits as MemorySearchHit[])
+    .map((hit) => hit.id)
+    .filter((id) => !mergedIds.has(id));
+
+  if (textOnlyIds.length > 0) {
+    const textRows = await db
+      .select(PUBLIC_MEMORY_SELECT)
+      .from(memories)
+      .where(
+        and(
+          eq(memories.ownerId, ownerId),
+          agentCondition,
+          isNull(memories.archivedAt),
+          inArray(memories.id, textOnlyIds),
+        ),
+      );
+
+    const textRowMap = new Map(textRows.map((row) => [row.id, row]));
+
+    for (const id of textOnlyIds) {
+      const row = textRowMap.get(id);
+      if (!row) continue;
+      const score = textScores.get(id) ?? 0.5;
+      if (score >= minScore) {
+        merged.push({ data: toSearchableMemory(row), score });
+      }
+    }
+  }
+
+  merged.sort((a, b) => b.score - a.score);
 
   // Annotate pool names
   const poolIds = [...new Set(merged.filter((r) => r.data.poolId).map((r) => r.data.poolId!))];
@@ -205,7 +286,7 @@ export async function searchMemories(
     }
   }
 
-  return merged;
+  return merged.slice(0, limit);
 }
 
 export async function getMemory(id: string, agentId: string, ownerId: string) {
@@ -222,22 +303,30 @@ export async function getMemory(id: string, agentId: string, ownerId: string) {
 
   if (!row) return null;
 
-  // Check access: own data or pool data the agent can read
-  if (row.agentId !== agentId) {
-    if (!row.poolId) return null;
+  // Check access: private data belongs to the agent; pool data requires membership.
+  if (row.poolId) {
     const readable = await getReadablePoolIds(agentId, ownerId, 'memory');
     if (!readable.includes(row.poolId)) return null;
+  } else if (row.agentId !== agentId) {
+    return null;
   }
 
   const [annotated] = await annotatePoolNames([row]);
   return annotated;
 }
 
-export async function updateMemory(id: string, agentId: string, ownerId: string, data: MemoryUpdate) {
+export async function updateMemory(
+  id: string,
+  agentId: string,
+  ownerId: string,
+  data: MemoryUpdate,
+  scopes?: string[],
+) {
   // Check if this is pool data that requires write access
   const existing = await getMemory(id, agentId, ownerId);
   if (!existing) return null;
   if (existing.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, existing.poolId, 'memory');
   } else if (existing.agentId !== agentId) {
     return null;
@@ -271,11 +360,12 @@ export async function updateMemory(id: string, agentId: string, ownerId: string,
   return null;
 }
 
-export async function archiveMemory(id: string, agentId: string, ownerId: string) {
+export async function archiveMemory(id: string, agentId: string, ownerId: string, scopes?: string[]) {
   // Check if this is pool data that requires write access
   const existing = await getMemory(id, agentId, ownerId);
   if (!existing) return null;
   if (existing.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, existing.poolId, 'memory');
   } else if (existing.agentId !== agentId) {
     return null;
@@ -310,8 +400,15 @@ export async function archiveMemory(id: string, agentId: string, ownerId: string
 // Sessions
 // ---------------------------------------------------------------------------
 
-export async function startSession(agentId: string, ownerId: string, context?: Record<string, unknown>, poolId?: string) {
+export async function startSession(
+  agentId: string,
+  ownerId: string,
+  context?: Record<string, unknown>,
+  poolId?: string,
+  scopes?: string[],
+) {
   if (poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, poolId, 'memory');
   }
 
@@ -333,10 +430,40 @@ export async function startSession(agentId: string, ownerId: string, context?: R
     ownerId,
   });
 
-  return row;
+  const [annotated] = await annotatePoolNames([row]);
+  return annotated;
 }
 
-export async function updateSession(id: string, agentId: string, ownerId: string, data: SessionUpdate) {
+export async function updateSession(
+  id: string,
+  agentId: string,
+  ownerId: string,
+  data: SessionUpdate,
+  scopes?: string[],
+) {
+  const [existing] = await db
+    .select({
+      id: memorySessions.id,
+      agentId: memorySessions.agentId,
+      ownerId: memorySessions.ownerId,
+      poolId: memorySessions.poolId,
+    })
+    .from(memorySessions)
+    .where(
+      and(
+        eq(memorySessions.id, id),
+        eq(memorySessions.ownerId, ownerId),
+        eq(memorySessions.agentId, agentId),
+      ),
+    )
+    .limit(1);
+
+  if (!existing) return null;
+  if (existing.poolId) {
+    validatePoolsWriteScope(scopes);
+    await validatePoolWrite(agentId, ownerId, existing.poolId, 'memory');
+  }
+
   const updates: Record<string, unknown> = {};
 
   if (data.currentState !== undefined) updates.currentState = data.currentState;
@@ -350,22 +477,26 @@ export async function updateSession(id: string, agentId: string, ownerId: string
     .set(updates)
     .where(
       and(
-        eq(memorySessions.id, id),
-        eq(memorySessions.ownerId, ownerId),
-        eq(memorySessions.agentId, agentId),
+        eq(memorySessions.id, existing.id),
+        eq(memorySessions.ownerId, existing.ownerId),
+        eq(memorySessions.agentId, existing.agentId),
       ),
     )
     .returning();
 
-  return row ?? null;
+  if (!row) return null;
+  const [annotated] = await annotatePoolNames([row]);
+  return annotated;
 }
 
 export async function getCurrentSession(agentId: string, ownerId: string) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'memory');
-
   const agentCondition = readablePoolIds.length > 0
-    ? or(eq(memorySessions.agentId, agentId), inArray(memorySessions.poolId, readablePoolIds))!
-    : eq(memorySessions.agentId, agentId);
+    ? or(
+        and(eq(memorySessions.agentId, agentId), isNull(memorySessions.poolId)),
+        inArray(memorySessions.poolId, readablePoolIds),
+      )!
+    : and(eq(memorySessions.agentId, agentId), isNull(memorySessions.poolId))!;
 
   const [row] = await db
     .select()
@@ -387,10 +518,12 @@ export async function getCurrentSession(agentId: string, ownerId: string) {
 
 export async function listSessions(agentId: string, ownerId: string, limit: number, offset: number) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'memory');
-
   const agentCondition = readablePoolIds.length > 0
-    ? or(eq(memorySessions.agentId, agentId), inArray(memorySessions.poolId, readablePoolIds))!
-    : eq(memorySessions.agentId, agentId);
+    ? or(
+        and(eq(memorySessions.agentId, agentId), isNull(memorySessions.poolId)),
+        inArray(memorySessions.poolId, readablePoolIds),
+      )!
+    : and(eq(memorySessions.agentId, agentId), isNull(memorySessions.poolId))!;
 
   const conditions = [
     eq(memorySessions.ownerId, ownerId),

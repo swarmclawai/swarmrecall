@@ -29,21 +29,19 @@ export function hashApiKey(key: string): string {
 
 export async function createApiKey(params: {
   ownerId: string;
-  agentId?: string;
+  agentId: string;
   name: string;
   scopes: string[];
   expiresAt?: Date;
 }) {
-  if (params.agentId) {
-    const [agent] = await db
-      .select({ id: agents.id })
-      .from(agents)
-      .where(and(eq(agents.id, params.agentId), eq(agents.ownerId, params.ownerId)))
-      .limit(1);
+  const [agent] = await db
+    .select({ id: agents.id })
+    .from(agents)
+    .where(and(eq(agents.id, params.agentId), eq(agents.ownerId, params.ownerId)))
+    .limit(1);
 
-    if (!agent) {
-      throw new ApiKeyValidationError('Agent not found', 404);
-    }
+  if (!agent) {
+    throw new ApiKeyValidationError('Agent not found', 404);
   }
 
   const rawKey = generateApiKey();
@@ -54,7 +52,7 @@ export async function createApiKey(params: {
     .insert(apiKeys)
     .values({
       ownerId: params.ownerId,
-      agentId: params.agentId ?? null,
+      agentId: params.agentId,
       name: params.name,
       keyPrefix,
       keyHash,

@@ -165,7 +165,7 @@ export const SkillUsageSchema = z.object({
 
 export const ApiKeyCreateSchema = z.object({
   name: z.string().min(1).max(100),
-  agentId: z.string().uuid().optional(),
+  agentId: z.string().uuid(),
   scopes: z.array(z.enum(API_KEY_SCOPES)).min(1),
   expiresAt: z.string().datetime().optional(),
 });

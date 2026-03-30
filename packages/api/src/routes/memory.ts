@@ -42,7 +42,7 @@ memory.post('/', requireScope('memory.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const row = await storeMemory(auth.agentId, auth.ownerId, parsed.data);
+  const row = await storeMemory(auth.agentId, auth.ownerId, parsed.data, auth.scopes);
   return c.json(row, 201);
 });
 
@@ -121,7 +121,7 @@ memory.patch('/:id', requireScope('memory.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const row = await updateMemory(id, auth.agentId, auth.ownerId, parsed.data);
+  const row = await updateMemory(id, auth.agentId, auth.ownerId, parsed.data, auth.scopes);
   if (!row) {
     return c.json({ error: 'Memory not found' }, 404);
   }
@@ -139,7 +139,7 @@ memory.delete('/:id', requireScope('memory.write'), async (c) => {
     return c.json({ error: 'Missing memory id' }, 400);
   }
 
-  const row = await archiveMemory(id, auth.agentId, auth.ownerId);
+  const row = await archiveMemory(id, auth.agentId, auth.ownerId, auth.scopes);
   if (!row) {
     return c.json({ error: 'Memory not found' }, 404);
   }
@@ -163,7 +163,13 @@ memory.post('/sessions', requireScope('memory.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const row = await startSession(auth.agentId, auth.ownerId, parsed.data.context, parsed.data.poolId);
+  const row = await startSession(
+    auth.agentId,
+    auth.ownerId,
+    parsed.data.context,
+    parsed.data.poolId,
+    auth.scopes,
+  );
   return c.json(row, 201);
 });
 
@@ -221,7 +227,7 @@ memory.patch('/sessions/:id', requireScope('memory.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const row = await updateSession(id, auth.agentId, auth.ownerId, parsed.data);
+  const row = await updateSession(id, auth.agentId, auth.ownerId, parsed.data, auth.scopes);
   if (!row) {
     return c.json({ error: 'Session not found' }, 404);
   }

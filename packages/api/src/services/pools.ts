@@ -42,7 +42,7 @@ export async function getPool(id: string, ownerId: string) {
   const [pool] = await db
     .select()
     .from(pools)
-    .where(and(eq(pools.id, id), eq(pools.ownerId, ownerId)))
+    .where(and(eq(pools.id, id), eq(pools.ownerId, ownerId), isNull(pools.archivedAt)))
     .limit(1);
 
   if (!pool) return null;
@@ -175,6 +175,14 @@ export async function updatePoolMember(
   ownerId: string,
   data: PoolMemberUpdate,
 ) {
+  const [pool] = await db
+    .select({ id: pools.id })
+    .from(pools)
+    .where(and(eq(pools.id, poolId), eq(pools.ownerId, ownerId), isNull(pools.archivedAt)))
+    .limit(1);
+
+  if (!pool) return null;
+
   const updates: Record<string, unknown> = {};
   if (data.memoryAccess !== undefined) updates.memoryAccess = data.memoryAccess;
   if (data.knowledgeAccess !== undefined) updates.knowledgeAccess = data.knowledgeAccess;
@@ -210,6 +218,14 @@ export async function updatePoolMember(
 }
 
 export async function removePoolMember(poolId: string, agentId: string, ownerId: string) {
+  const [pool] = await db
+    .select({ id: pools.id })
+    .from(pools)
+    .where(and(eq(pools.id, poolId), eq(pools.ownerId, ownerId), isNull(pools.archivedAt)))
+    .limit(1);
+
+  if (!pool) return null;
+
   const [row] = await db
     .delete(poolMembers)
     .where(

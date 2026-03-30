@@ -142,6 +142,12 @@ export async function validatePoolWrite(
   }
 }
 
+export function validatePoolsWriteScope(scopes?: string[]): void {
+  if (scopes && !scopes.includes('pools.write')) {
+    throw new HTTPException(403, { message: 'Missing required scope(s): pools.write' });
+  }
+}
+
 export async function resolvePoolNames(poolIds: string[]): Promise<Map<string, string>> {
   if (poolIds.length === 0) return new Map();
 

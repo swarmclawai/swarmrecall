@@ -252,22 +252,22 @@ export default function ApiKeysPage() {
                 htmlFor="key-agent"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Agent ID{' '}
-                <span className="font-normal text-gray-400">(optional)</span>
+                Agent ID
               </label>
               <input
                 id="key-agent"
                 type="text"
+                required
                 value={agentId}
                 onChange={(e) => setAgentId(e.target.value)}
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none"
-                placeholder="Restrict to a specific agent"
+                placeholder="UUID of the agent this key belongs to"
               />
             </div>
 
             <button
               type="submit"
-              disabled={creating || selectedScopes.length === 0}
+              disabled={creating || selectedScopes.length === 0 || agentId.trim().length === 0}
               className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {creating ? 'Creating...' : 'Create API Key'}

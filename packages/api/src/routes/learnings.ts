@@ -36,7 +36,7 @@ learningsRouter.post('/', requireScope('learnings.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const result = await logLearning(auth.agentId, auth.ownerId, parsed.data);
+  const result = await logLearning(auth.agentId, auth.ownerId, parsed.data, auth.scopes);
   return c.json(result, 201);
 });
 
@@ -122,7 +122,7 @@ learningsRouter.patch('/:id', requireScope('learnings.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const updated = await updateLearning(id, auth.agentId, auth.ownerId, parsed.data);
+  const updated = await updateLearning(id, auth.agentId, auth.ownerId, parsed.data, auth.scopes);
 
   if (!updated) {
     return c.json({ error: 'Learning not found' }, 404);
@@ -149,10 +149,16 @@ learningsRouter.post('/:id/link', requireScope('learnings.write'), async (c) => 
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const result = await linkLearnings(id, parsed.data.targetId, auth.agentId, auth.ownerId);
+  const result = await linkLearnings(
+    id,
+    parsed.data.targetId,
+    auth.agentId,
+    auth.ownerId,
+    auth.scopes,
+  );
 
   if ('error' in result) {
-    return c.json({ error: result.error }, 404);
+    return c.json({ error: result.error }, result.status);
   }
 
   return c.json(result);
