@@ -26,8 +26,8 @@ export default function AgentsPage() {
   const loadAgents = async () => {
     try {
       const token = await getToken();
-      const data = await apiFetch<{ agents: Agent[] }>('/agents', token);
-      setAgents(data.agents ?? []);
+      const data = await apiFetch<{ data: Agent[] }>('/agents', token);
+      setAgents(data.data ?? []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load agents');
     } finally {
@@ -61,7 +61,7 @@ export default function AgentsPage() {
   };
 
   return (
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Agents</h1>
@@ -193,6 +193,6 @@ export default function AgentsPage() {
             ))}
           </div>
         )}
-      </div>
+    </div>
   );
 }

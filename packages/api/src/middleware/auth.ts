@@ -4,7 +4,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { owners, apiKeys } from '../db/schema.js';
 import { verifyIdToken } from '../lib/firebase.js';
-import { redis } from '../lib/redis.js';
+import { redisGet, redisSetex } from '../lib/redis.js';
 import { API_KEY_PREFIX } from '@swarmrecall/shared';
 import type { ApiKeyScope } from '@swarmrecall/shared';
 
@@ -40,12 +40,7 @@ export async function apiKeyAuth(c: Context, next: Next) {
 
   // Check Redis cache first
   const cacheKey = `apikey:${keyHash}`;
-  let cached: string | null = null;
-  try {
-    cached = await redis.get(cacheKey);
-  } catch {
-    // Redis may be unavailable
-  }
+  const cached = await redisGet(cacheKey);
 
   let keyData: { id: string; ownerId: string; agentId: string | null; scopes: string[] } | null = null;
 
@@ -69,11 +64,7 @@ export async function apiKeyAuth(c: Context, next: Next) {
     keyData = { id: row.id, ownerId: row.ownerId, agentId: row.agentId, scopes: row.scopes };
 
     // Cache for 60 seconds
-    try {
-      await redis.setex(cacheKey, 60, JSON.stringify(keyData));
-    } catch {
-      // noop
-    }
+    redisSetex(cacheKey, 60, JSON.stringify(keyData));
   }
 
   if (!keyData?.agentId) {
@@ -163,7 +154,10 @@ export async function firebaseAuth(c: Context, next: Next) {
 
 export function requireScope(...requiredScopes: ApiKeyScope[]) {
   return async (c: Context, next: Next) => {
-    const auth = c.get('auth') as AgentAuthPayload;
+    const auth = c.get('auth') as AgentAuthPayload | undefined;
+    if (!auth) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
     const hasAll = requiredScopes.every((s) => auth.scopes.includes(s));
     if (!hasAll) {
       return c.json({ error: `Missing required scope(s): ${requiredScopes.join(', ')}` }, 403);

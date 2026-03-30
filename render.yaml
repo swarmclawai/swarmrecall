@@ -16,7 +16,9 @@ services:
         value: https://swarmrecall.ai
       - key: MEILISEARCH_URL
         value: http://swarmrecall-search:7700
-      - key: REDIS_URL
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
       - key: FIREBASE_PROJECT_ID
         value: swarmrecall-a0898

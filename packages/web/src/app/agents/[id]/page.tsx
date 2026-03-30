@@ -50,7 +50,7 @@ export default function AgentDetailPage() {
         const token = await getToken();
         const [agentData, statsData] = await Promise.allSettled([
           apiFetch<Agent>(`/agents/${agentId}`, token),
-          apiFetch<AgentStats>(`/agents/${agentId}/stats`, token),
+          apiFetch<AgentStats>(`/stats/agents/${agentId}`, token),
         ]);
 
         if (agentData.status === 'fulfilled') {

@@ -21,13 +21,14 @@ import {
   getCurrentSession,
   listSessions,
 } from '../services/memory.js';
+import { requireScope } from '../middleware/auth.js';
 
 const memory = new Hono();
 
 // ---------------------------------------------------------------------------
 // POST / — Store a new memory
 // ---------------------------------------------------------------------------
-memory.post('/', async (c) => {
+memory.post('/', requireScope('memory.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const body = await c.req.json();
   const parsed = MemoryCreateSchema.safeParse(body);
@@ -43,7 +44,7 @@ memory.post('/', async (c) => {
 // ---------------------------------------------------------------------------
 // GET / — List memories (paginated, filterable)
 // ---------------------------------------------------------------------------
-memory.get('/', async (c) => {
+memory.get('/', requireScope('memory.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const parsed = MemoryListSchema.safeParse(c.req.query());
 
@@ -58,7 +59,7 @@ memory.get('/', async (c) => {
 // ---------------------------------------------------------------------------
 // GET /search — Semantic + text search
 // ---------------------------------------------------------------------------
-memory.get('/search', async (c) => {
+memory.get('/search', requireScope('memory.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const parsed = SearchQuerySchema.safeParse(c.req.query());
 
@@ -80,9 +81,12 @@ memory.get('/search', async (c) => {
 // ---------------------------------------------------------------------------
 // GET /:id — Get single memory
 // ---------------------------------------------------------------------------
-memory.get('/:id', async (c) => {
+memory.get('/:id', requireScope('memory.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing memory id' }, 400);
+  }
 
   const row = await getMemory(id, auth.agentId, auth.ownerId);
   if (!row) {
@@ -95,9 +99,12 @@ memory.get('/:id', async (c) => {
 // ---------------------------------------------------------------------------
 // PATCH /:id — Update memory
 // ---------------------------------------------------------------------------
-memory.patch('/:id', async (c) => {
+memory.patch('/:id', requireScope('memory.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing memory id' }, 400);
+  }
   const body = await c.req.json();
   const parsed = MemoryUpdateSchema.safeParse(body);
 
@@ -116,9 +123,12 @@ memory.patch('/:id', async (c) => {
 // ---------------------------------------------------------------------------
 // DELETE /:id — Soft delete (archive)
 // ---------------------------------------------------------------------------
-memory.delete('/:id', async (c) => {
+memory.delete('/:id', requireScope('memory.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing memory id' }, 400);
+  }
 
   const row = await archiveMemory(id, auth.agentId, auth.ownerId);
   if (!row) {
@@ -131,7 +141,7 @@ memory.delete('/:id', async (c) => {
 // ---------------------------------------------------------------------------
 // POST /sessions — Start a new session
 // ---------------------------------------------------------------------------
-memory.post('/sessions', async (c) => {
+memory.post('/sessions', requireScope('memory.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const body = await c.req.json().catch(() => ({}));
   const parsed = SessionCreateSchema.safeParse(body);
@@ -147,7 +157,7 @@ memory.post('/sessions', async (c) => {
 // ---------------------------------------------------------------------------
 // GET /sessions/current — Get latest active session
 // ---------------------------------------------------------------------------
-memory.get('/sessions/current', async (c) => {
+memory.get('/sessions/current', requireScope('memory.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
 
   const row = await getCurrentSession(auth.agentId, auth.ownerId);
@@ -161,7 +171,7 @@ memory.get('/sessions/current', async (c) => {
 // ---------------------------------------------------------------------------
 // GET /sessions — List sessions (paginated)
 // ---------------------------------------------------------------------------
-memory.get('/sessions', async (c) => {
+memory.get('/sessions', requireScope('memory.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const parsed = PaginationSchema.safeParse(c.req.query());
 
@@ -181,9 +191,12 @@ memory.get('/sessions', async (c) => {
 // ---------------------------------------------------------------------------
 // PATCH /sessions/:id — Update session
 // ---------------------------------------------------------------------------
-memory.patch('/sessions/:id', async (c) => {
+memory.patch('/sessions/:id', requireScope('memory.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing session id' }, 400);
+  }
   const body = await c.req.json();
   const parsed = SessionUpdateSchema.safeParse(body);
 

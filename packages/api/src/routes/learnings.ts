@@ -17,11 +17,12 @@ import {
   getPromotionCandidates,
   linkLearnings,
 } from '../services/learnings.js';
+import { requireScope } from '../middleware/auth.js';
 
 const learningsRouter = new Hono();
 
 // POST / — Log a new learning
-learningsRouter.post('/', async (c) => {
+learningsRouter.post('/', requireScope('learnings.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const body = await c.req.json();
   const parsed = LearningCreateSchema.safeParse(body);
@@ -35,7 +36,7 @@ learningsRouter.post('/', async (c) => {
 });
 
 // GET / — List learnings (paginated, filtered)
-learningsRouter.get('/', async (c) => {
+learningsRouter.get('/', requireScope('learnings.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const query = c.req.query();
   const parsed = LearningListSchema.safeParse(query);
@@ -49,7 +50,7 @@ learningsRouter.get('/', async (c) => {
 });
 
 // GET /search — Semantic search
-learningsRouter.get('/search', async (c) => {
+learningsRouter.get('/search', requireScope('learnings.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const query = c.req.query();
   const parsed = SearchQuerySchema.safeParse(query);
@@ -69,23 +70,26 @@ learningsRouter.get('/search', async (c) => {
 });
 
 // GET /patterns — List learning patterns
-learningsRouter.get('/patterns', async (c) => {
+learningsRouter.get('/patterns', requireScope('learnings.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const patterns = await getPatterns(auth.agentId, auth.ownerId);
   return c.json({ data: patterns });
 });
 
 // GET /promotions — Promotion candidates
-learningsRouter.get('/promotions', async (c) => {
+learningsRouter.get('/promotions', requireScope('learnings.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const candidates = await getPromotionCandidates(auth.agentId, auth.ownerId);
   return c.json({ data: candidates });
 });
 
 // GET /:id — Get single learning
-learningsRouter.get('/:id', async (c) => {
+learningsRouter.get('/:id', requireScope('learnings.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing learning id' }, 400);
+  }
   const learning = await getLearning(id, auth.agentId, auth.ownerId);
 
   if (!learning) {
@@ -96,9 +100,12 @@ learningsRouter.get('/:id', async (c) => {
 });
 
 // PATCH /:id — Update learning
-learningsRouter.patch('/:id', async (c) => {
+learningsRouter.patch('/:id', requireScope('learnings.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing learning id' }, 400);
+  }
   const body = await c.req.json();
   const parsed = LearningUpdateSchema.safeParse(body);
 
@@ -116,9 +123,12 @@ learningsRouter.patch('/:id', async (c) => {
 });
 
 // POST /:id/link — Link related learnings
-learningsRouter.post('/:id/link', async (c) => {
+learningsRouter.post('/:id/link', requireScope('learnings.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing learning id' }, 400);
+  }
   const body = await c.req.json();
   const parsed = LearningLinkSchema.safeParse(body);
 
