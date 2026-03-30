@@ -7,6 +7,7 @@ import {
   SearchQuerySchema,
 } from '@swarmrecall/shared';
 import type { AgentAuthPayload } from '../middleware/auth.js';
+import { parseJsonBody } from '../lib/request.js';
 import {
   logLearning,
   listLearnings,
@@ -24,8 +25,12 @@ const learningsRouter = new Hono();
 // POST / — Log a new learning
 learningsRouter.post('/', requireScope('learnings.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
-  const body = await c.req.json();
-  const parsed = LearningCreateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = LearningCreateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
@@ -106,8 +111,12 @@ learningsRouter.patch('/:id', requireScope('learnings.write'), async (c) => {
   if (!id) {
     return c.json({ error: 'Missing learning id' }, 400);
   }
-  const body = await c.req.json();
-  const parsed = LearningUpdateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = LearningUpdateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
@@ -129,8 +138,12 @@ learningsRouter.post('/:id/link', requireScope('learnings.write'), async (c) => 
   if (!id) {
     return c.json({ error: 'Missing learning id' }, 400);
   }
-  const body = await c.req.json();
-  const parsed = LearningLinkSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = LearningLinkSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);

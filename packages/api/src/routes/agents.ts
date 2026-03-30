@@ -16,7 +16,9 @@ import {
   EntityListSchema,
 } from '@swarmrecall/shared';
 import type { DashboardAuthPayload } from '../middleware/auth.js';
+import { parseJsonBody } from '../lib/request.js';
 import { logAuditEvent } from '../services/audit.js';
+import { archiveOwnedAgent, getOwnedActiveAgent, listOwnedActiveAgents } from '../services/agents.js';
 import { listLearnings, getPatterns } from '../services/learnings.js';
 import { listEntities, listRelations, searchEntities } from '../services/knowledge.js';
 import { listMemories, listSessions, searchMemories } from '../services/memory.js';
@@ -42,11 +44,7 @@ async function loadOwnedAgent(c: Context, next: Next) {
     return c.json({ error: 'Missing agent id' }, 400);
   }
 
-  const [agent] = await db
-    .select()
-    .from(agents)
-    .where(and(eq(agents.id, id), eq(agents.ownerId, auth.ownerId)))
-    .limit(1);
+  const agent = await getOwnedActiveAgent(id, auth.ownerId);
 
   if (!agent) {
     return c.json({ error: 'Agent not found' }, 404);
@@ -63,8 +61,12 @@ function getOwnedAgentFromContext(c: Context) {
 // POST / — Create agent
 agentsRouter.post('/', async (c) => {
   const auth = c.get('auth' as never) as DashboardAuthPayload;
-  const body = await c.req.json();
-  const parsed = AgentCreateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = AgentCreateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
@@ -94,12 +96,7 @@ agentsRouter.post('/', async (c) => {
 // GET / — List owner's agents
 agentsRouter.get('/', async (c) => {
   const auth = c.get('auth' as never) as DashboardAuthPayload;
-
-  const data = await db
-    .select()
-    .from(agents)
-    .where(eq(agents.ownerId, auth.ownerId))
-    .orderBy(agents.createdAt);
+  const data = await listOwnedActiveAgents(auth.ownerId);
 
   return c.json({ data });
 });
@@ -274,8 +271,12 @@ agentsRouter.patch('/:id', async (c) => {
   if (!id) {
     return c.json({ error: 'Missing agent id' }, 400);
   }
-  const body = await c.req.json();
-  const parsed = AgentUpdateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = AgentUpdateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
@@ -304,15 +305,7 @@ agentsRouter.delete('/:id', async (c) => {
   if (!id) {
     return c.json({ error: 'Missing agent id' }, 400);
   }
-
-  const [updated] = await db
-    .update(agents)
-    .set({
-      status: 'deleted',
-      updatedAt: new Date(),
-    })
-    .where(and(eq(agents.id, id), eq(agents.ownerId, auth.ownerId)))
-    .returning();
+  const updated = await archiveOwnedAgent(id, auth.ownerId);
 
   if (!updated) {
     return c.json({ error: 'Agent not found' }, 404);

@@ -2,9 +2,29 @@ import { eq, and, or, isNull, desc, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { entities, relations, entityTypes } from '../db/schema.js';
 import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
-import { indexDocument, searchDocuments } from './search.js';
+import { searchIndex } from './search.js';
 import { logAuditEvent } from './audit.js';
 import type { EntityCreate, EntityUpdate, EntityList, RelationCreate } from '@swarmrecall/shared';
+
+type SearchableEntityRow = Pick<
+  typeof entities.$inferSelect,
+  'id' | 'ownerId' | 'agentId' | 'name' | 'type' | 'archivedAt'
+>;
+
+export async function syncEntitySearchDocument(row: SearchableEntityRow) {
+  if (row.archivedAt) {
+    await searchIndex.removeDocument('entities', row.id);
+    return;
+  }
+
+  await searchIndex.indexDocument('entities', {
+    id: row.id,
+    ownerId: row.ownerId,
+    agentId: row.agentId,
+    name: row.name,
+    type: row.type,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Entities
@@ -27,13 +47,7 @@ export async function createEntity(agentId: string, ownerId: string, data: Entit
     .returning();
 
   // Index in Meilisearch
-  indexDocument('entities', {
-    id: row.id,
-    ownerId,
-    agentId,
-    name: row.name,
-    type: row.type,
-  });
+  syncEntitySearchDocument(row);
 
   logAuditEvent({
     eventType: 'entity.created',
@@ -159,6 +173,10 @@ export async function updateEntity(id: string, agentId: string, ownerId: string,
     )
     .returning();
 
+  if (row) {
+    await syncEntitySearchDocument(row);
+  }
+
   return row ?? null;
 }
 
@@ -176,6 +194,7 @@ export async function archiveEntity(id: string, agentId: string, ownerId: string
     .returning();
 
   if (row) {
+    await syncEntitySearchDocument(row);
     logAuditEvent({
       eventType: 'entity.archived',
       actorId: agentId,
@@ -423,7 +442,7 @@ export async function searchEntities(
   }
 
   // Meilisearch text search
-  const textResults = await searchDocuments(
+  const textResults = await searchIndex.searchDocuments(
     'entities',
     query,
     `ownerId = "${ownerId}" AND agentId = "${agentId}"`,

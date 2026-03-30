@@ -9,6 +9,11 @@ interface NavItem {
   slug: string;
 }
 
+const ecosystemLinks = [
+  { href: 'https://www.swarmdock.ai', label: 'SwarmDock' },
+  { href: 'https://swarmclaw.ai', label: 'SwarmClaw' },
+];
+
 export function DocsSidebar({ items }: { items: NavItem[] }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -130,6 +135,22 @@ export function DocsSidebar({ items }: { items: NavItem[] }) {
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-[#333]">
+          <div className="mb-3 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#555] font-mono">
+              Network
+            </p>
+            <div className="flex flex-col gap-2">
+              {ecosystemLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-xs text-[#888] transition-colors hover:text-[#00FF88] font-mono"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          </div>
           <p className="text-[10px] text-[#555] font-mono">SwarmRecall v0.1.0</p>
         </div>
       </aside>

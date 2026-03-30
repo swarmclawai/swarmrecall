@@ -3,20 +3,28 @@
 import { useAuth } from '@/lib/auth-context';
 import { getAuth, googleProvider, githubProvider } from '@/lib/firebase';
 import { signInWithPopup } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3300';
 
-export default function ClaimPage() {
+function ClaimPageContent() {
   const { user, loading, getToken } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [claimCode, setClaimCode] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    if (token) {
+      setClaimCode(token);
+    }
+  }, [searchParams]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -57,7 +65,7 @@ export default function ClaimPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ claimCode: claimCode.trim() }),
+        body: JSON.stringify({ claimToken: claimCode.trim() }),
       });
 
       if (!res.ok) {
@@ -70,11 +78,7 @@ export default function ClaimPage() {
       const data = await res.json();
       setSuccess('Agent claimed successfully! Redirecting...');
       setTimeout(() => {
-        router.push(
-          data.agentId
-            ? `/dashboard/agents/${data.agentId}`
-            : '/dashboard'
-        );
+        router.push(data.agentId ? `/agents/${data.agentId}` : '/dashboard');
       }, 1500);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Claim failed');
@@ -134,7 +138,7 @@ export default function ClaimPage() {
             {!user ? (
               <>
                 <p className="text-sm text-[#888] text-center font-mono">
-                  // sign in first to claim your agent
+                  {'// sign in first to claim your agent'}
                 </p>
                 <div className="space-y-3">
                   <button
@@ -223,5 +227,19 @@ export default function ClaimPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ClaimPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen bg-[#0A0A0A]">
+          <span className="font-mono text-[#00FF88] animate-pulse">$ loading...</span>
+        </div>
+      }
+    >
+      <ClaimPageContent />
+    </Suspense>
   );
 }

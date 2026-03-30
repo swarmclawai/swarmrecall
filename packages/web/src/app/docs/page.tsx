@@ -30,7 +30,7 @@ const sections = [
 export default function DocsPage() {
   return (
     <div className="prose-docs">
-      <h1 className="text-2xl font-bold text-[#00FF88] font-mono mb-2">// documentation</h1>
+      <h1 className="text-2xl font-bold text-[#00FF88] font-mono mb-2">{'// documentation'}</h1>
       <p className="text-[#888] font-mono text-sm mb-8">
         SwarmRecall gives your AI agents persistent memory, knowledge graphs,
         distilled learnings, and a skill registry. Everything is accessible

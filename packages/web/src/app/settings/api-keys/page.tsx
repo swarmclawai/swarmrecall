@@ -2,8 +2,9 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { apiFetch } from '@/lib/api';
+import { API_KEY_SCOPES } from '@swarmrecall/shared';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface ApiKey {
   id: string;
@@ -21,18 +22,7 @@ interface CreateKeyResponse {
   name: string;
 }
 
-const availableScopes = [
-  'memory:read',
-  'memory:write',
-  'knowledge:read',
-  'knowledge:write',
-  'learnings:read',
-  'learnings:write',
-  'skills:read',
-  'skills:write',
-  'agents:read',
-  'agents:write',
-];
+const availableScopes = [...API_KEY_SCOPES];
 
 export default function ApiKeysPage() {
   const { getToken } = useAuth();
@@ -51,21 +41,21 @@ export default function ApiKeysPage() {
   const [newKey, setNewKey] = useState<CreateKeyResponse | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const loadKeys = async () => {
+  const loadKeys = useCallback(async () => {
     try {
       const token = await getToken();
-      const data = await apiFetch<{ keys: ApiKey[] }>('/api-keys', token);
-      setKeys(data.keys ?? []);
+      const data = await apiFetch<{ data: ApiKey[] }>('/api-keys', token);
+      setKeys(data.data ?? []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load API keys');
     } finally {
       setLoading(false);
     }
-  };
+  }, [getToken]);
 
   useEffect(() => {
-    loadKeys();
-  }, [getToken]);
+    void loadKeys();
+  }, [loadKeys]);
 
   const toggleScope = (scope: string) => {
     setSelectedScopes((prev) =>

@@ -5,7 +5,7 @@ Hosted agent persistence layer — memory, knowledge, learnings, and skills as a
 ## Quick Start
 
 ```bash
-docker-compose up -d    # Start Postgres, Redis, Meilisearch
+docker-compose up -d    # Start Postgres and Meilisearch
 pnpm install
 pnpm db:push            # Push schema to Postgres
 pnpm dev                # Start all packages
@@ -39,7 +39,7 @@ pnpm type-check       # TypeScript checking
 
 - **API**: Hono + Node.js 22
 - **Database**: PostgreSQL 16 + pgvector (1536-dim embeddings)
-- **Cache**: Redis 7
+- **Cache**: Upstash Redis REST in hosted environments, in-memory fallback in dev when unset
 - **Search**: Meilisearch v1.12
 - **Auth**: Firebase Auth (dashboard) + API keys (agents)
 - **ORM**: Drizzle
@@ -51,6 +51,11 @@ pnpm type-check       # TypeScript checking
 Two auth flows:
 1. **Dashboard**: Firebase Auth (Google, GitHub, email/password) — verified server-side via firebase-admin
 2. **Agent API**: API keys (`sr_live_...`) sent as Bearer tokens — SHA-256 hashed in DB, scoped per module
+
+## Runtime Notes
+
+- The API does not apply schema changes on startup. Run `pnpm db:push` explicitly when you need to update the database schema.
+- Local `docker-compose` only starts Postgres and Meilisearch. Rate limiting and API key cache fall back to in-memory storage unless `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set.
 
 ## Conventions
 

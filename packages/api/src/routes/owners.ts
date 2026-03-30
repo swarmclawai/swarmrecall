@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { owners } from '../db/schema.js';
+import { parseJsonBody } from '../lib/request.js';
 import type { DashboardAuthPayload } from '../middleware/auth.js';
 
 const OwnerUpdateSchema = z.object({
@@ -41,8 +42,12 @@ ownersRouter.get('/me', async (c) => {
 // PATCH /me — Update owner profile
 ownersRouter.patch('/me', async (c) => {
   const auth = c.get('auth' as never) as DashboardAuthPayload;
-  const body = await c.req.json();
-  const parsed = OwnerUpdateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = OwnerUpdateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);

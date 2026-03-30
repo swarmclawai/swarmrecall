@@ -9,6 +9,7 @@ import {
   PaginationSchema,
 } from '@swarmrecall/shared';
 import type { AgentAuthPayload } from '../middleware/auth.js';
+import { parseJsonBody } from '../lib/request.js';
 import {
   storeMemory,
   listMemories,
@@ -30,8 +31,12 @@ const memory = new Hono();
 // ---------------------------------------------------------------------------
 memory.post('/', requireScope('memory.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
-  const body = await c.req.json();
-  const parsed = MemoryCreateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = MemoryCreateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
@@ -105,8 +110,12 @@ memory.patch('/:id', requireScope('memory.write'), async (c) => {
   if (!id) {
     return c.json({ error: 'Missing memory id' }, 400);
   }
-  const body = await c.req.json();
-  const parsed = MemoryUpdateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = MemoryUpdateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
@@ -143,8 +152,12 @@ memory.delete('/:id', requireScope('memory.write'), async (c) => {
 // ---------------------------------------------------------------------------
 memory.post('/sessions', requireScope('memory.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
-  const body = await c.req.json().catch(() => ({}));
-  const parsed = SessionCreateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c, { empty: {} });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = SessionCreateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
@@ -197,8 +210,12 @@ memory.patch('/sessions/:id', requireScope('memory.write'), async (c) => {
   if (!id) {
     return c.json({ error: 'Missing session id' }, 400);
   }
-  const body = await c.req.json();
-  const parsed = SessionUpdateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = SessionUpdateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);

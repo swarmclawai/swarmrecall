@@ -10,6 +10,7 @@ import {
   EntityTypeCreateSchema,
 } from '@swarmrecall/shared';
 import type { AgentAuthPayload } from '../middleware/auth.js';
+import { parseJsonBody } from '../lib/request.js';
 import {
   createEntity,
   listEntities,
@@ -36,8 +37,12 @@ const knowledge = new Hono();
 // POST /entities — Create entity
 knowledge.post('/entities', requireScope('knowledge.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
-  const body = await c.req.json();
-  const parsed = EntityCreateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = EntityCreateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
@@ -83,8 +88,12 @@ knowledge.patch('/entities/:id', requireScope('knowledge.write'), async (c) => {
   if (!id) {
     return c.json({ error: 'Missing entity id' }, 400);
   }
-  const body = await c.req.json();
-  const parsed = EntityUpdateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = EntityUpdateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
@@ -121,8 +130,12 @@ knowledge.delete('/entities/:id', requireScope('knowledge.write'), async (c) => 
 // POST /relations — Create relation
 knowledge.post('/relations', requireScope('knowledge.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
-  const body = await c.req.json();
-  const parsed = RelationCreateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = RelationCreateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
@@ -233,8 +246,12 @@ knowledge.post('/validate', requireScope('knowledge.read'), async (c) => {
 // POST /types — Create entity type
 knowledge.post('/types', requireScope('knowledge.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
-  const body = await c.req.json();
-  const parsed = EntityTypeCreateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = EntityTypeCreateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);

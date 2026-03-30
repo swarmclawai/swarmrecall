@@ -1,10 +1,31 @@
-import { eq, and, isNull, desc, asc, sql } from 'drizzle-orm';
+import { eq, and, isNull, desc, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { memories, memorySessions } from '../db/schema.js';
 import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
-import { indexDocument, searchDocuments } from './search.js';
+import { searchIndex } from './search.js';
 import { logAuditEvent } from './audit.js';
-import type { MemoryCreate, MemoryUpdate, MemoryList, SessionCreate, SessionUpdate } from '@swarmrecall/shared';
+import type { MemoryCreate, MemoryUpdate, MemoryList, SessionUpdate } from '@swarmrecall/shared';
+
+type SearchableMemoryRow = Pick<
+  typeof memories.$inferSelect,
+  'id' | 'ownerId' | 'agentId' | 'content' | 'category' | 'tags' | 'archivedAt'
+>;
+
+export async function syncMemorySearchDocument(row: SearchableMemoryRow) {
+  if (row.archivedAt) {
+    await searchIndex.removeDocument('memories', row.id);
+    return;
+  }
+
+  await searchIndex.indexDocument('memories', {
+    id: row.id,
+    ownerId: row.ownerId,
+    agentId: row.agentId,
+    content: row.content,
+    category: row.category,
+    tags: row.tags,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Memories
@@ -29,14 +50,7 @@ export async function storeMemory(agentId: string, ownerId: string, data: Memory
     .returning();
 
   // Index in Meilisearch (fire-and-forget)
-  indexDocument('memories', {
-    id: row.id,
-    ownerId,
-    agentId,
-    content: row.content,
-    category: row.category,
-    tags: row.tags,
-  });
+  syncMemorySearchDocument(row);
 
   // Audit log (fire-and-forget)
   logAuditEvent({
@@ -126,7 +140,7 @@ export async function searchMemories(
   }
 
   // Meilisearch text search
-  const textResults = await searchDocuments(
+  const textResults = await searchIndex.searchDocuments(
     'memories',
     query,
     `ownerId = "${ownerId}" AND agentId = "${agentId}"`,
@@ -193,6 +207,10 @@ export async function updateMemory(id: string, agentId: string, ownerId: string,
     )
     .returning();
 
+  if (row) {
+    await syncMemorySearchDocument(row);
+  }
+
   return row ?? null;
 }
 
@@ -210,6 +228,7 @@ export async function archiveMemory(id: string, agentId: string, ownerId: string
     .returning();
 
   if (row) {
+    await syncMemorySearchDocument(row);
     logAuditEvent({
       eventType: 'memory.archived',
       actorId: agentId,
