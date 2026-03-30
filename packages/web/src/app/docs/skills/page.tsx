@@ -28,7 +28,7 @@ export default function SkillsPage() {
       </pre>
       <p>
         <a
-          href="https://clawhub.ai/skills/swarmrecall-full"
+          href="https://clawhub.ai/waydelyle/swarmrecall"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -47,7 +47,7 @@ export default function SkillsPage() {
       </pre>
       <p>
         <a
-          href="https://clawhub.ai/skills/swarmrecall-memory"
+          href="https://clawhub.ai/waydelyle/swarmrecall-memory"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -66,7 +66,7 @@ export default function SkillsPage() {
       </pre>
       <p>
         <a
-          href="https://clawhub.ai/skills/swarmrecall-knowledge"
+          href="https://clawhub.ai/waydelyle/swarmrecall-knowledge"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -85,7 +85,7 @@ export default function SkillsPage() {
       </pre>
       <p>
         <a
-          href="https://clawhub.ai/skills/swarmrecall-learnings"
+          href="https://clawhub.ai/waydelyle/swarmrecall-learnings"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -103,7 +103,7 @@ export default function SkillsPage() {
       </pre>
       <p>
         <a
-          href="https://clawhub.ai/skills/swarmrecall-skills"
+          href="https://clawhub.ai/waydelyle/swarmrecall-skills"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -121,7 +121,7 @@ export default function SkillsPage() {
       </pre>
       <p>
         <a
-          href="https://clawhub.ai/skills/swarmrecall-agent"
+          href="https://clawhub.ai/waydelyle/swarmrecall"
           target="_blank"
           rel="noopener noreferrer"
         >
