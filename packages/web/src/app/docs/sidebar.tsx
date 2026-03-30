@@ -20,7 +20,7 @@ export function DocsSidebar({ items }: { items: NavItem[] }) {
       {/* Mobile toggle */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed top-4 left-4 z-50 md:hidden p-2 rounded-lg bg-[#13131e] border border-white/5 text-[#e2e2ec] hover:bg-[#1e1e30] transition-colors"
+        className="fixed top-4 left-4 z-50 md:hidden p-2 bg-[#111] border border-[#333] text-[#E0E0E0] hover:bg-[#1a1a1a] transition-colors"
         aria-label="Open docs menu"
       >
         <svg
@@ -42,7 +42,7 @@ export function DocsSidebar({ items }: { items: NavItem[] }) {
       {/* Mobile backdrop */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/70 md:hidden"
           onClick={() => setOpen(false)}
         />
       )}
@@ -51,7 +51,7 @@ export function DocsSidebar({ items }: { items: NavItem[] }) {
       <aside
         className={`
           fixed top-0 left-0 z-50 h-full w-72
-          glass-card rounded-none border-r border-white/5
+          bg-[#0A0A0A] border-r border-[#333]
           flex flex-col
           transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
           md:translate-x-0
@@ -59,30 +59,16 @@ export function DocsSidebar({ items }: { items: NavItem[] }) {
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-white/5">
+        <div className="flex items-center justify-between px-5 py-5 border-b border-[#333]">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-[#6366F1]/20 flex items-center justify-center">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#818CF8"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 6v6l4 2" />
-              </svg>
-            </div>
-            <span className="font-display text-sm font-semibold text-[#e2e2ec] group-hover:text-white transition-colors">
+            <span className="text-[#00FF88] text-sm font-mono">$</span>
+            <span className="text-sm font-bold text-[#E0E0E0] group-hover:text-white transition-colors font-mono">
               SwarmRecall
             </span>
           </Link>
           <button
             onClick={() => setOpen(false)}
-            className="md:hidden p-1.5 rounded-md text-[#7a7a96] hover:text-[#e2e2ec] hover:bg-white/5 transition-colors"
+            className="md:hidden p-1.5 text-[#888] hover:text-[#E0E0E0] transition-colors"
             aria-label="Close docs menu"
           >
             <svg
@@ -102,33 +88,20 @@ export function DocsSidebar({ items }: { items: NavItem[] }) {
         </div>
 
         {/* Back to home */}
-        <div className="px-4 pt-4 pb-2">
+        <div className="px-5 pt-4 pb-2">
           <Link
             href="/"
-            className="flex items-center gap-2 text-xs text-[#7a7a96] hover:text-[#818CF8] transition-colors"
+            className="flex items-center gap-2 text-xs text-[#888] hover:text-[#00FF88] transition-colors font-mono"
           >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            Back to Home
+            &larr; Back to Home
           </Link>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-2">
           <div className="px-2 pb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-[#42425c]">
-              Documentation
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#555] font-mono">
+              DOCS
             </span>
           </div>
           {items.map((item) => {
@@ -141,11 +114,11 @@ export function DocsSidebar({ items }: { items: NavItem[] }) {
                 href={href}
                 onClick={() => setOpen(false)}
                 className={`
-                  flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150
+                  flex items-center gap-2.5 px-3 py-2 text-sm transition-all duration-150 font-mono
                   ${
                     isActive
-                      ? 'bg-[#6366F1]/10 text-[#818CF8] font-medium'
-                      : 'text-[#7a7a96] hover:text-[#e2e2ec] hover:bg-white/[0.03]'
+                      ? 'text-[#00FF88] border-l-2 border-[#00FF88] bg-[#00FF88]/5'
+                      : 'text-[#888] hover:text-[#E0E0E0] border-l-2 border-transparent'
                   }
                 `}
               >
@@ -156,8 +129,8 @@ export function DocsSidebar({ items }: { items: NavItem[] }) {
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-white/5">
-          <p className="text-[10px] text-[#42425c]">SwarmRecall v0.1.0</p>
+        <div className="px-5 py-4 border-t border-[#333]">
+          <p className="text-[10px] text-[#555] font-mono">SwarmRecall v0.1.0</p>
         </div>
       </aside>
     </>

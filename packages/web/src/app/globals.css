@@ -1,108 +1,154 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
-  --font-display: var(--font-sora), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), "SF Mono", monospace;
+  --font-body: var(--font-ibm-plex-mono), "SF Mono", monospace;
 
-  /* Midnight Glass Palette */
-  --color-bg: #08080d;
-  --color-raised: #0d0d14;
-  --color-surface: #13131e;
-  --color-surface-2: #1e1e30;
-  --color-surface-3: #23233a;
-  --color-border-hi: rgba(255, 255, 255, 0.07);
-  --color-border-focus: rgba(99, 102, 241, 0.5);
-  --color-text: #e2e2ec;
-  --color-text-2: #7a7a96;
-  --color-text-3: #42425c;
-  --color-accent-indigo: #6366f1;
-  --color-accent-soft: rgba(99, 102, 241, 0.08);
-  --color-accent-glow: rgba(99, 102, 241, 0.18);
-  --color-accent-bright: #818cf8;
-  --color-success: #34d399;
-  --color-danger: #f43f5e;
-  --color-glass: rgba(16, 16, 28, 0.75);
-  --color-glass-border: rgba(255, 255, 255, 0.05);
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --color-bg: #0A0A0A;
+  --color-surface: #111111;
+  --color-surface-2: #151515;
+  --color-surface-3: #1A1A1A;
+  --color-border: #333333;
+  --color-border-bright: #555555;
+  --color-text: #E0E0E0;
+  --color-text-muted: #888888;
+  --color-text-dim: #555555;
+  --color-green: #00FF88;
+  --color-green-dim: rgba(0, 255, 136, 0.15);
+  --color-orange: #FF6B35;
+  --color-red: #FF4444;
 }
 
-/* Glow effects */
-.glow-indigo {
-  box-shadow: 0 0 60px rgba(99, 102, 241, 0.15),
-    0 0 120px rgba(99, 102, 241, 0.05);
-}
-.glow-indigo-sm {
-  box-shadow: 0 0 30px rgba(99, 102, 241, 0.12);
-}
-
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #818cf8 0%, #6366f1 40%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* ── Terminal card ────────────────────────────── */
+.terminal-card {
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 0;
+  padding: 1.5rem;
 }
 
-/* Glass card */
-.glass-card {
-  background: rgba(16, 16, 28, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
+/* ── Blinking cursor ─────────────────────────── */
+.cursor-blink::after {
+  content: "";
+  display: inline-block;
+  width: 0.6em;
+  height: 1.1em;
+  background: #00FF88;
+  margin-left: 0.15em;
+  vertical-align: text-bottom;
+  animation: blink-cursor 1s step-end infinite;
 }
 
-/* Prose for docs */
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── Scanlines overlay ───────────────────────── */
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  z-index: 1;
+}
+
+/* ── Typewriter ──────────────────────────────── */
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typewriter 2.5s steps(40, end) forwards;
+}
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* ── Terminal prompt prefix ──────────────────── */
+.terminal-prompt::before {
+  content: "> ";
+  color: #00FF88;
+  font-weight: 700;
+}
+
+/* ── Prose for docs (monospace terminal style) ─ */
 .prose-docs {
-  color: #e2e2ec;
-  line-height: 1.75;
+  color: #E0E0E0;
+  line-height: 1.8;
+  font-family: var(--font-body);
 }
 .prose-docs h1 {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   margin-top: 2rem;
   margin-bottom: 1rem;
-  color: #fff;
-  font-family: var(--font-display);
+  color: #00FF88;
+  font-family: var(--font-mono);
+  border-bottom: 1px solid #333333;
+  padding-bottom: 0.5rem;
+}
+.prose-docs h1::before {
+  content: "# ";
+  color: #555555;
 }
 .prose-docs h2 {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 600;
   margin-top: 2.5rem;
   margin-bottom: 0.75rem;
-  color: #fff;
+  color: #E0E0E0;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  font-family: var(--font-display);
+  border-bottom: 1px solid #333333;
+  font-family: var(--font-mono);
+}
+.prose-docs h2::before {
+  content: "## ";
+  color: #555555;
 }
 .prose-docs h3 {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 600;
   margin-top: 1.75rem;
   margin-bottom: 0.5rem;
-  color: #e2e2ec;
+  color: #E0E0E0;
+  font-family: var(--font-mono);
+}
+.prose-docs h3::before {
+  content: "### ";
+  color: #555555;
 }
 .prose-docs p {
   margin-bottom: 1rem;
-  color: #a0a0b8;
+  color: #888888;
 }
 .prose-docs a {
-  color: #818cf8;
+  color: #00FF88;
   text-decoration: none;
+  border-bottom: 1px solid rgba(0, 255, 136, 0.3);
 }
 .prose-docs a:hover {
-  text-decoration: underline;
+  border-bottom-color: #00FF88;
 }
 .prose-docs code:not(pre code) {
-  background: rgba(99, 102, 241, 0.1);
-  color: #818cf8;
+  background: rgba(0, 255, 136, 0.1);
+  color: #00FF88;
   padding: 0.15em 0.4em;
-  border-radius: 4px;
+  border-radius: 0;
   font-size: 0.9em;
+  border: 1px solid rgba(0, 255, 136, 0.2);
 }
 .prose-docs pre {
-  background: #0d0d14 !important;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  background: #0A0A0A !important;
+  border: 1px solid #333333;
+  border-radius: 0;
   padding: 1rem;
   margin: 1rem 0;
   overflow-x: auto;
@@ -112,11 +158,18 @@
   color: inherit;
   padding: 0;
   font-size: 0.875rem;
+  border: none;
 }
 .prose-docs ul {
-  list-style: disc;
+  list-style: none;
   padding-left: 1.5rem;
   margin-bottom: 1rem;
+}
+.prose-docs ul li::before {
+  content: "- ";
+  color: #00FF88;
+  font-weight: 700;
+  margin-left: -1rem;
 }
 .prose-docs ol {
   list-style: decimal;
@@ -125,14 +178,14 @@
 }
 .prose-docs li {
   margin-bottom: 0.35rem;
-  color: #a0a0b8;
+  color: #888888;
 }
 .prose-docs blockquote {
-  border-left: 3px solid #6366f1;
+  border-left: 3px solid #00FF88;
   padding-left: 1rem;
   margin: 1rem 0;
-  color: #7a7a96;
-  font-style: italic;
+  color: #888888;
+  font-style: normal;
 }
 .prose-docs table {
   width: 100%;
@@ -142,22 +195,29 @@
 .prose-docs th {
   text-align: left;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e2e2ec;
+  border-bottom: 1px solid #333333;
+  color: #00FF88;
   font-weight: 600;
   font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 .prose-docs td {
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: #a0a0b8;
+  border-bottom: 1px solid #1A1A1A;
+  color: #888888;
   font-size: 0.875rem;
 }
 .prose-docs strong {
-  color: #e2e2ec;
+  color: #E0E0E0;
 }
 .prose-docs hr {
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid #333333;
   margin: 2rem 0;
+}
+
+/* ── Global resets ───────────────────────────── */
+* {
+  border-radius: 0 !important;
 }

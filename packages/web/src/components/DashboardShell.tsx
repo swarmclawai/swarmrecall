@@ -83,24 +83,24 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   return (
     <AuthGuard>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-[#0A0A0A] font-mono">
         {/* Mobile overlay */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-40 bg-black/30 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/70 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
         {/* Sidebar */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform lg:static lg:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[#333] bg-[#0A0A0A] transition-transform lg:static lg:translate-x-0 ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <div className="flex h-14 items-center border-b border-gray-200 px-6">
-            <Link href="/dashboard" className="text-lg font-semibold text-gray-900">
-              SwarmRecall
+          <div className="flex h-14 items-center border-b border-[#333] px-6">
+            <Link href="/dashboard" className="flex items-center gap-2 text-lg font-bold text-[#E0E0E0] font-mono">
+              <span className="text-[#00FF88]">$</span> SwarmRecall
             </Link>
           </div>
 
@@ -110,10 +110,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 key={item.name}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors font-mono border-l-2 ${
                   isActive(item.href)
-                    ? 'bg-gray-100 text-gray-900'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'border-[#00FF88] text-[#00FF88] bg-[#00FF88]/5'
+                    : 'border-transparent text-[#888] hover:text-[#E0E0E0] hover:bg-[#111]'
                 }`}
               >
                 {item.icon}
@@ -126,10 +126,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         {/* Main content */}
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Top bar */}
-          <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-6">
+          <header className="flex h-14 items-center justify-between border-b border-[#333] bg-[#0A0A0A] px-6">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden text-gray-600 hover:text-gray-900 cursor-pointer"
+              className="lg:hidden text-[#888] hover:text-[#E0E0E0] cursor-pointer"
             >
               <svg
                 className="h-6 w-6"
@@ -154,21 +154,21 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   <img
                     src={user.photoURL}
                     alt=""
-                    className="h-8 w-8 rounded-full"
+                    className="h-8 w-8"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-600">
+                  <div className="flex h-8 w-8 items-center justify-center bg-[#111] border border-[#333] text-sm font-medium text-[#888] font-mono">
                     {user?.displayName?.[0] ?? user?.email?.[0] ?? '?'}
                   </div>
                 )}
-                <span className="hidden text-sm font-medium text-gray-700 sm:block">
+                <span className="hidden text-sm font-medium text-[#888] sm:block font-mono">
                   {user?.displayName ?? user?.email}
                 </span>
               </div>
               <button
                 onClick={signOut}
-                className="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+                className="px-3 py-1.5 text-sm text-[#888] hover:bg-[#111] hover:text-[#E0E0E0] border border-[#333] transition-colors cursor-pointer font-mono"
               >
                 Sign out
               </button>
@@ -176,7 +176,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </header>
 
           {/* Page content */}
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          <main className="flex-1 overflow-y-auto p-6 bg-[#0A0A0A]">{children}</main>
         </div>
       </div>
     </AuthGuard>

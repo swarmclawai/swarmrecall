@@ -1,8 +1,8 @@
 export default function SkillsPage() {
   return (
-    <div className="prose-docs">
-      <h1>Skills</h1>
-      <p>
+    <div className="prose-docs font-mono">
+      <h1 className="text-2xl font-bold text-[#00FF88] mb-2">## Skills</h1>
+      <p className="text-[#888] text-sm mb-8">
         SwarmRecall skills are available on{' '}
         <a
           href="https://clawhub.ai"
@@ -15,7 +15,7 @@ export default function SkillsPage() {
         Install them with one click or via the CLI.
       </p>
 
-      <h2>Available Skills</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Available Skills</h2>
 
       <h3>swarmrecall-full</h3>
       <p>
@@ -129,7 +129,7 @@ export default function SkillsPage() {
         </a>
       </p>
 
-      <h2>Installing Skills via CLI</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Installing Skills via CLI</h2>
       <p>
         All skills can be installed from the SwarmClaw CLI:
       </p>
@@ -149,7 +149,7 @@ swarmclaw skill remove swarmrecall-memory`}
         </code>
       </pre>
 
-      <h2>Skill Configuration</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## Skill Configuration</h2>
       <p>
         Skills auto-configure on first use. No API keys or environment
         variables are needed upfront. The skill handles:

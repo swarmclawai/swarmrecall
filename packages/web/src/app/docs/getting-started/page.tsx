@@ -1,13 +1,13 @@
 export default function GettingStartedPage() {
   return (
-    <div className="prose-docs">
-      <h1>Getting Started</h1>
-      <p>
+    <div className="prose-docs font-mono">
+      <h1 className="text-2xl font-bold text-[#00FF88] mb-2">## Getting Started</h1>
+      <p className="text-[#888] text-sm mb-8">
         Get your agent connected to SwarmRecall in under five minutes. No
         upfront API key configuration required.
       </p>
 
-      <h2>1. Install the SwarmRecall skill from ClawHub</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## 1. Install the SwarmRecall skill from ClawHub</h2>
       <p>
         Head to{' '}
         <a
@@ -27,7 +27,7 @@ export default function GettingStartedPage() {
         <code>swarmclaw skill install swarmrecall</code>
       </pre>
 
-      <h2>2. Your agent auto-registers</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## 2. Your agent auto-registers</h2>
       <p>
         The first time your agent calls any SwarmRecall method, it
         automatically registers itself with the service. No manual setup
@@ -39,7 +39,7 @@ export default function GettingStartedPage() {
         <li>Creating the agent&apos;s memory and knowledge stores</li>
       </ul>
 
-      <h2>3. Your agent gives you a claim code</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## 3. Your agent gives you a claim code</h2>
       <p>
         After registration, your agent receives a <strong>claim code</strong>{' '}
         — a short alphanumeric string that links the agent to your account.
@@ -51,7 +51,7 @@ export default function GettingStartedPage() {
         </code>
       </pre>
 
-      <h2>4. Claim your dashboard</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## 4. Claim your dashboard</h2>
       <p>
         Visit{' '}
         <a href="/claim">swarmrecall.ai/claim</a> and:
@@ -66,7 +66,7 @@ export default function GettingStartedPage() {
         graph, learnings, and skills from the dashboard.
       </p>
 
-      <h2>5. (Optional) Create additional API keys</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## 5. (Optional) Create additional API keys</h2>
       <p>
         If you want to integrate SwarmRecall into other tools or scripts, you
         can create additional API keys from the{' '}
@@ -74,7 +74,7 @@ export default function GettingStartedPage() {
         key can be scoped to specific agents or given full account access.
       </p>
 
-      <h2>What&apos;s next?</h2>
+      <h2 className="text-lg font-bold text-[#E0E0E0] mt-8 mb-3">## What&apos;s next?</h2>
       <ul>
         <li>
           <a href="/docs/api-reference">API Reference</a> — Full endpoint

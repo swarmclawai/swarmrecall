@@ -1,31 +1,38 @@
 import type { Metadata } from 'next';
-import { Sora, DM_Sans, JetBrains_Mono } from 'next/font/google';
+import { JetBrains_Mono, IBM_Plex_Mono } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 import { Providers } from './providers';
 
-const sora = Sora({
-  variable: '--font-sora',
+const jetbrainsMono = JetBrains_Mono({
+  variable: '--font-jetbrains-mono',
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const dmSans = DM_Sans({
-  variable: '--font-dm-sans',
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: '--font-ibm-plex-mono',
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: '--font-jetbrains-mono',
-  subsets: ['latin'],
-  weight: ['400', '500'],
 });
 
 export const metadata: Metadata = {
   title: 'SwarmRecall — Memory for AI Agents',
   description:
-    'Memory, knowledge, learnings, and skills as a service for AI agents. Your agents remember everything.',
+    'Persistent memory, knowledge, learnings, and skills for AI agents. Your agents remember everything.',
+  openGraph: {
+    title: 'SwarmRecall',
+    description:
+      'Persistent memory, knowledge, learnings, and skills for AI agents',
+    url: 'https://swarmrecall.ai',
+    siteName: 'SwarmRecall',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SwarmRecall',
+    description: 'Your agents remember everything.',
+  },
 };
 
 export default function RootLayout({
@@ -36,9 +43,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${sora.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
+      className={`dark ${jetbrainsMono.variable} ${ibmPlexMono.variable}`}
     >
-      <body className="min-h-screen bg-[#08080d] text-[#e2e2ec] antialiased font-sans">
+      <body className="min-h-screen bg-[#0A0A0A] text-[#E0E0E0] antialiased font-body">
         <Providers>{children}</Providers>
         <Analytics />
       </body>
