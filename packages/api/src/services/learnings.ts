@@ -1,9 +1,10 @@
-import { eq, and, desc, sql, gte, isNull, SQL } from 'drizzle-orm';
+import { eq, and, or, desc, sql, gte, isNull, inArray, SQL } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { learnings, learningPatterns } from '../db/schema.js';
 import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
 import { searchIndex } from './search.js';
 import { logAuditEvent } from './audit.js';
+import { getReadablePoolIds, validatePoolWrite, annotatePoolNames } from './poolAccess.js';
 import {
   SIMILARITY_THRESHOLD,
   PROMOTION_THRESHOLD,
@@ -25,6 +26,7 @@ type SearchableLearningRow = Pick<
   | 'area'
   | 'suggestedAction'
   | 'tags'
+  | 'poolId'
   | 'archivedAt'
 >;
 
@@ -38,6 +40,7 @@ export async function syncLearningSearchDocument(row: SearchableLearningRow) {
     id: row.id,
     agentId: row.agentId,
     ownerId: row.ownerId,
+    poolId: row.poolId,
     category: row.category,
     summary: row.summary,
     details: row.details,
@@ -62,6 +65,11 @@ function vectorToSql(vec: number[]): string {
 // ---------------------------------------------------------------------------
 
 export async function logLearning(agentId: string, ownerId: string, data: LearningCreate) {
+  // 0. Validate pool write access if targeting a pool
+  if (data.poolId) {
+    await validatePoolWrite(agentId, ownerId, data.poolId, 'learnings');
+  }
+
   // 1. Generate embedding
   const embedding = await generateEmbedding(data.summary + (data.details ? ' ' + data.details : ''));
 
@@ -80,6 +88,7 @@ export async function logLearning(agentId: string, ownerId: string, data: Learni
       tags: data.tags,
       metadata: data.metadata ?? null,
       embedding: embedding.length > 0 ? embedding : null,
+      poolId: data.poolId ?? null,
     })
     .returning();
 
@@ -103,10 +112,11 @@ export async function logLearning(agentId: string, ownerId: string, data: Learni
     targetId: learning.id,
     targetType: 'learning',
     ownerId,
-    payload: { category: learning.category, patternId },
+    payload: { category: learning.category, patternId, poolId: data.poolId },
   });
 
-  return { ...learning, patternId };
+  const [annotated] = await annotatePoolNames([{ ...learning, patternId }]);
+  return annotated;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,11 +129,16 @@ export async function findSimilarLearnings(
   embedding: number[],
   excludeId?: string,
 ) {
+  const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
   const vectorStr = vectorToSql(embedding);
 
+  const agentCondition = readablePoolIds.length > 0
+    ? or(eq(learnings.agentId, agentId), inArray(learnings.poolId, readablePoolIds))!
+    : eq(learnings.agentId, agentId);
+
   const conditions = [
-    eq(learnings.agentId, agentId),
     eq(learnings.ownerId, ownerId),
+    agentCondition,
     isNull(learnings.archivedAt),
     sql`${learnings.embedding} IS NOT NULL`,
   ];
@@ -159,13 +174,19 @@ export async function updateOrCreatePattern(
   // Check if any of the similar learnings already belong to a pattern
   const allIds = [learningId, ...similarIds];
 
+  const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
+
+  const patternCondition = readablePoolIds.length > 0
+    ? or(eq(learningPatterns.agentId, agentId), inArray(learningPatterns.poolId, readablePoolIds))!
+    : eq(learningPatterns.agentId, agentId);
+
   const existingPatterns = await db
     .select()
     .from(learningPatterns)
     .where(
       and(
-        eq(learningPatterns.agentId, agentId),
         eq(learningPatterns.ownerId, ownerId),
+        patternCondition,
       ),
     );
 
@@ -188,7 +209,6 @@ export async function updateOrCreatePattern(
       .where(
         and(
           eq(learningPatterns.id, matchedPattern.id),
-          eq(learningPatterns.agentId, agentId),
           eq(learningPatterns.ownerId, ownerId),
         ),
       )
@@ -197,7 +217,7 @@ export async function updateOrCreatePattern(
     return updated.id;
   }
 
-  // Create new pattern
+  // Create new pattern (patterns are not directly pool-owned)
   const [newPattern] = await db
     .insert(learningPatterns)
     .values({
@@ -207,6 +227,7 @@ export async function updateOrCreatePattern(
       recurrenceCount: allIds.length,
       sessionCount: 1,
       learningIds: allIds,
+      poolId: null,
     })
     .returning();
 
@@ -218,9 +239,15 @@ export async function updateOrCreatePattern(
 // ---------------------------------------------------------------------------
 
 export async function listLearnings(agentId: string, ownerId: string, filters: LearningList) {
+  const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
+
+  const agentCondition = readablePoolIds.length > 0
+    ? or(eq(learnings.agentId, agentId), inArray(learnings.poolId, readablePoolIds))!
+    : eq(learnings.agentId, agentId);
+
   const conditions: SQL[] = [
-    eq(learnings.agentId, agentId),
     eq(learnings.ownerId, ownerId),
+    agentCondition,
   ];
 
   if (!filters.includeArchived) {
@@ -258,6 +285,7 @@ export async function listLearnings(agentId: string, ownerId: string, filters: L
         resolutionCommit: learnings.resolutionCommit,
         tags: learnings.tags,
         metadata: learnings.metadata,
+        poolId: learnings.poolId,
         archivedAt: learnings.archivedAt,
         createdAt: learnings.createdAt,
         updatedAt: learnings.updatedAt,
@@ -273,7 +301,8 @@ export async function listLearnings(agentId: string, ownerId: string, filters: L
       .where(where),
   ]);
 
-  return { data, total: count, limit: filters.limit, offset: filters.offset };
+  const annotated = await annotatePoolNames(data);
+  return { data: annotated, total: count, limit: filters.limit, offset: filters.offset };
 }
 
 // ---------------------------------------------------------------------------
@@ -287,15 +316,28 @@ export async function searchLearnings(
   limit: number,
   minScore: number,
 ) {
+  const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
+
+  const agentCondition = readablePoolIds.length > 0
+    ? or(eq(learnings.agentId, agentId), inArray(learnings.poolId, readablePoolIds))!
+    : eq(learnings.agentId, agentId);
+
+  // Build Meilisearch filter including pool data
+  let meiliFilter = `ownerId = "${ownerId}" AND agentId = "${agentId}"`;
+  if (readablePoolIds.length > 0) {
+    const poolFilter = readablePoolIds.map((id) => `poolId = "${id}"`).join(' OR ');
+    meiliFilter = `ownerId = "${ownerId}" AND (agentId = "${agentId}" OR ${poolFilter})`;
+  }
+
   // Generate embedding for semantic search
   const embedding = await generateQueryEmbedding(query);
 
   if (embedding.length === 0) {
     // Fall back to Meilisearch text search
-      const results = await searchIndex.searchDocuments(
-        'learnings',
-        query,
-        `ownerId = "${ownerId}" AND agentId = "${agentId}"`,
+    const results = await searchIndex.searchDocuments(
+      'learnings',
+      query,
+      meiliFilter,
       limit,
     );
     return { data: results.hits, total: results.estimatedTotalHits };
@@ -318,6 +360,7 @@ export async function searchLearnings(
       resolution: learnings.resolution,
       tags: learnings.tags,
       metadata: learnings.metadata,
+      poolId: learnings.poolId,
       createdAt: learnings.createdAt,
       updatedAt: learnings.updatedAt,
       score: sql<number>`1 - (${learnings.embedding} <=> ${sql.raw(`'${vectorStr}'::vector`)})`,
@@ -325,8 +368,8 @@ export async function searchLearnings(
     .from(learnings)
     .where(
       and(
-        eq(learnings.agentId, agentId),
         eq(learnings.ownerId, ownerId),
+        agentCondition,
         isNull(learnings.archivedAt),
         sql`${learnings.embedding} IS NOT NULL`,
       ),
@@ -335,7 +378,8 @@ export async function searchLearnings(
     .limit(limit);
 
   const filtered = rows.filter((r) => r.score >= minScore);
-  return { data: filtered, total: filtered.length };
+  const annotated = await annotatePoolNames(filtered);
+  return { data: annotated, total: annotated.length };
 }
 
 // ---------------------------------------------------------------------------
@@ -359,6 +403,7 @@ export async function getLearning(id: string, agentId: string, ownerId: string) 
       resolutionCommit: learnings.resolutionCommit,
       tags: learnings.tags,
       metadata: learnings.metadata,
+      poolId: learnings.poolId,
       archivedAt: learnings.archivedAt,
       createdAt: learnings.createdAt,
       updatedAt: learnings.updatedAt,
@@ -367,13 +412,22 @@ export async function getLearning(id: string, agentId: string, ownerId: string) 
     .where(
       and(
         eq(learnings.id, id),
-        eq(learnings.agentId, agentId),
         eq(learnings.ownerId, ownerId),
       ),
     )
     .limit(1);
 
-  return row ?? null;
+  if (!row) return null;
+
+  // Check access: own data or pool data the agent can read
+  if (row.agentId !== agentId) {
+    if (!row.poolId) return null;
+    const readable = await getReadablePoolIds(agentId, ownerId, 'learnings');
+    if (!readable.includes(row.poolId)) return null;
+  }
+
+  const [annotated] = await annotatePoolNames([row]);
+  return annotated;
 }
 
 // ---------------------------------------------------------------------------
@@ -386,6 +440,15 @@ export async function updateLearning(
   ownerId: string,
   data: LearningUpdate,
 ) {
+  // Check if this is pool data that requires write access
+  const existing = await getLearning(id, agentId, ownerId);
+  if (!existing) return null;
+  if (existing.poolId) {
+    await validatePoolWrite(agentId, ownerId, existing.poolId, 'learnings');
+  } else if (existing.agentId !== agentId) {
+    return null;
+  }
+
   const [updated] = await db
     .update(learnings)
     .set({
@@ -395,7 +458,6 @@ export async function updateLearning(
     .where(
       and(
         eq(learnings.id, id),
-        eq(learnings.agentId, agentId),
         eq(learnings.ownerId, ownerId),
       ),
     )
@@ -413,13 +475,19 @@ export async function updateLearning(
 // ---------------------------------------------------------------------------
 
 export async function getPatterns(agentId: string, ownerId: string) {
+  const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
+
+  const agentCondition = readablePoolIds.length > 0
+    ? or(eq(learningPatterns.agentId, agentId), inArray(learningPatterns.poolId, readablePoolIds))!
+    : eq(learningPatterns.agentId, agentId);
+
   return db
     .select()
     .from(learningPatterns)
     .where(
       and(
-        eq(learningPatterns.agentId, agentId),
         eq(learningPatterns.ownerId, ownerId),
+        agentCondition,
         gte(learningPatterns.recurrenceCount, 2),
       ),
     )
@@ -431,6 +499,12 @@ export async function getPatterns(agentId: string, ownerId: string) {
 // ---------------------------------------------------------------------------
 
 export async function getPromotionCandidates(agentId: string, ownerId: string) {
+  const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'learnings');
+
+  const agentCondition = readablePoolIds.length > 0
+    ? or(eq(learningPatterns.agentId, agentId), inArray(learningPatterns.poolId, readablePoolIds))!
+    : eq(learningPatterns.agentId, agentId);
+
   const windowStart = new Date();
   windowStart.setDate(windowStart.getDate() - PROMOTION_WINDOW_DAYS);
 
@@ -439,8 +513,8 @@ export async function getPromotionCandidates(agentId: string, ownerId: string) {
     .from(learningPatterns)
     .where(
       and(
-        eq(learningPatterns.agentId, agentId),
         eq(learningPatterns.ownerId, ownerId),
+        agentCondition,
         gte(learningPatterns.recurrenceCount, PROMOTION_THRESHOLD),
         gte(learningPatterns.sessionCount, PROMOTION_SESSION_MIN),
         gte(learningPatterns.lastSeenAt, windowStart),

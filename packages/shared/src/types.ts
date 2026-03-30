@@ -1,6 +1,7 @@
 import type {
   MemoryCategory, LearningCategory, LearningPriority, LearningStatus,
   LearningArea, SkillStatus, AgentStatus, ApiKeyScope, EntityTypeName,
+  PoolAccessLevel,
 } from './constants.js';
 
 // --- Core ---
@@ -39,6 +40,30 @@ export interface ApiKey {
   createdAt: string;
 }
 
+// --- Pools ---
+
+export interface Pool {
+  id: string;
+  ownerId: string;
+  name: string;
+  description: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PoolMember {
+  id: string;
+  poolId: string;
+  agentId: string;
+  ownerId: string;
+  memoryAccess: PoolAccessLevel;
+  knowledgeAccess: PoolAccessLevel;
+  learningsAccess: PoolAccessLevel;
+  skillsAccess: PoolAccessLevel;
+  joinedAt: string;
+}
+
 // --- Memory ---
 
 export interface Memory {
@@ -51,6 +76,8 @@ export interface Memory {
   tags: string[];
   metadata: Record<string, unknown> | null;
   sessionId: string | null;
+  poolId: string | null;
+  poolName: string | null;
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -63,6 +90,8 @@ export interface MemorySession {
   context: Record<string, unknown> | null;
   currentState: Record<string, unknown> | null;
   summary: string | null;
+  poolId: string | null;
+  poolName: string | null;
   startedAt: string;
   endedAt: string | null;
   createdAt: string;
@@ -77,6 +106,8 @@ export interface Entity {
   type: EntityTypeName | string;
   name: string;
   properties: Record<string, unknown>;
+  poolId: string | null;
+  poolName: string | null;
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -90,6 +121,8 @@ export interface Relation {
   toEntityId: string;
   relation: string;
   properties: Record<string, unknown> | null;
+  poolId: string | null;
+  poolName: string | null;
   createdAt: string;
 }
 
@@ -119,6 +152,8 @@ export interface Learning {
   resolutionCommit: string | null;
   tags: string[];
   metadata: Record<string, unknown> | null;
+  poolId: string | null;
+  poolName: string | null;
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -135,6 +170,8 @@ export interface LearningPattern {
   lastSeenAt: string;
   promotedAt: string | null;
   learningIds: string[];
+  poolId: string | null;
+  poolName: string | null;
   createdAt: string;
 }
 
@@ -155,6 +192,8 @@ export interface AgentSkill {
   lastUsedAt: string | null;
   invocationCount: number;
   errorCount: number;
+  poolId: string | null;
+  poolName: string | null;
   createdAt: string;
   updatedAt: string;
 }

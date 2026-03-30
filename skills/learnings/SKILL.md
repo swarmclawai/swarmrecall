@@ -1,3 +1,20 @@
+---
+name: swarmrecall-learnings
+description: Error tracking, correction logging, and pattern detection via the SwarmRecall API. Tracks agent mistakes, corrections, and discoveries to surface recurring issues and promote learnings into actionable rules.
+metadata:
+  openclaw:
+    emoji: "\U0001F4A1"
+    requires:
+      env: [SWARMRECALL_API_KEY]
+    primaryEnv: SWARMRECALL_API_KEY
+    privacyPolicy: Learning data is stored on SwarmRecall servers (api.swarmrecall.ai). Data is scoped per agent and owner. The agent must have user consent before storing personal or sensitive information.
+    dataHandling: All data is transmitted over HTTPS. Learnings are stored in PostgreSQL with pgvector embeddings. Data is tenant-isolated by owner ID and agent ID.
+version: 1.0.3
+author: swarmclawai
+homepage: https://www.swarmrecall.ai
+tags: [learnings, ai-agents, error-tracking, pattern-detection, persistence]
+---
+
 # SwarmRecall Learnings
 
 Error tracking, correction logging, and pattern detection via the SwarmRecall API.
@@ -14,7 +31,7 @@ Before making any API calls, check for a `SWARMRECALL_API_KEY` environment varia
 
    { "name": "<your-agent-name>" }
    ```
-3. The response returns `{ "apiKey": "...", "claimToken": "..." }`. Save the `apiKey` as `SWARMRECALL_API_KEY` for all subsequent requests.
+3. The response returns `{ "apiKey": "...", "claimToken": "..." }`. Save the `apiKey` to the `SWARMRECALL_API_KEY` environment variable for all subsequent requests. Do NOT write the key to disk or any file without user consent.
 4. Tell the user: "SwarmRecall is set up! To manage your agent's data, visit swarmrecall.ai/claim with code: `<claimToken>`"
 
 ## Authentication
@@ -30,6 +47,14 @@ Authorization: Bearer <SWARMRECALL_API_KEY>
 
 All endpoints below are prefixed with `/api/v1`.
 
+## Privacy & Data Handling
+
+- All data is sent to `api.swarmrecall.ai` over HTTPS
+- Learning data (errors, corrections, discoveries) is stored server-side with vector embeddings for semantic search
+- Data is isolated per agent and owner — no cross-tenant access
+- Before storing user-provided content, ensure the user has consented to external storage
+- The `SWARMRECALL_API_KEY` should be stored as an environment variable only, not written to disk
+
 ## Endpoints
 
 ### Log a learning
@@ -43,7 +68,8 @@ POST /api/v1/learnings
   "area": "build",
   "suggestedAction": "Use --legacy-peer-deps flag",
   "tags": ["npm", "build"],
-  "metadata": {}
+  "metadata": {},
+  "poolId": "<uuid>"          // optional — write to shared pool
 }
 ```
 
@@ -90,3 +116,11 @@ POST /api/v1/learnings/:id/link
 - On correction: call `POST /api/v1/learnings` with `category: "correction"` and what was wrong vs. what is correct.
 - On session start: call `GET /api/v1/learnings/patterns` to preload known recurring issues. Check `GET /api/v1/learnings/promotions` for patterns ready to be promoted.
 - On promotion candidates: surface candidates to the user for approval before acting on them.
+
+## Shared Pools
+
+- The `POST /api/v1/learnings` endpoint accepts an optional `"poolId"` field.
+- When `poolId` is provided, the learning is shared with all pool members who have learnings read access.
+- The agent must have readwrite access to the pool's learnings module to write shared learnings.
+- Search (`GET /api/v1/learnings/search`) and list (`GET /api/v1/learnings`) results automatically include data from pools the agent belongs to.
+- Pool data in responses includes `poolId` and `poolName` fields to distinguish shared data from the agent's own data.

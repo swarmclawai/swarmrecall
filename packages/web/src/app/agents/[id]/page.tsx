@@ -26,6 +26,7 @@ const tabs = [
   { name: 'Knowledge', href: 'knowledge', description: 'Entities and relations' },
   { name: 'Learnings', href: 'learnings', description: 'Patterns and insights' },
   { name: 'Skills', href: 'skills', description: 'Installed capabilities' },
+  { name: 'Pools', href: 'pools', description: 'Shared pool memberships' },
 ];
 
 export default function AgentDetailPage() {

@@ -13,6 +13,8 @@ interface Memory {
   category: string;
   importance: number;
   sessionId?: string;
+  poolId?: string;
+  poolName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -196,6 +198,11 @@ export default function MemoryPage() {
                         >
                           {Math.round(memory.importance * 100)}%
                         </span>
+                        {memory.poolName && (
+                          <span className="inline-flex rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+                            {memory.poolName}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">

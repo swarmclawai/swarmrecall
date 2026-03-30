@@ -38,6 +38,14 @@ export type SkillStatus = (typeof SKILL_STATUSES)[number];
 export const AGENT_STATUSES = ['active', 'suspended', 'deleted'] as const;
 export type AgentStatus = (typeof AGENT_STATUSES)[number];
 
+// --- Pools ---
+
+export const POOL_ACCESS_LEVELS = ['none', 'read', 'readwrite'] as const;
+export type PoolAccessLevel = (typeof POOL_ACCESS_LEVELS)[number];
+
+export const POOL_DATA_TYPES = ['memory', 'knowledge', 'learnings', 'skills'] as const;
+export type PoolDataType = (typeof POOL_DATA_TYPES)[number];
+
 // --- API Key Scopes ---
 
 export const API_KEY_SCOPES = [
@@ -45,6 +53,7 @@ export const API_KEY_SCOPES = [
   'knowledge.read', 'knowledge.write',
   'learnings.read', 'learnings.write',
   'skills.read', 'skills.write',
+  'pools.read', 'pools.write',
 ] as const;
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 

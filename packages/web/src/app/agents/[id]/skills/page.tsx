@@ -13,6 +13,8 @@ interface Skill {
   version?: string | null;
   source?: string | null;
   status: string;
+  poolId?: string;
+  poolName?: string;
   invocationCount: number;
   lastUsedAt?: string | null;
   createdAt: string;
@@ -106,11 +108,18 @@ export default function SkillsPage() {
                   <h3 className="text-sm font-semibold text-gray-900">
                     {skill.name}
                   </h3>
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(skill.status)}`}
-                  >
-                    {skill.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(skill.status)}`}
+                    >
+                      {skill.status}
+                    </span>
+                    {skill.poolName && (
+                      <span className="inline-flex rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+                        {skill.poolName}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {skill.description && (
                   <p className="mt-2 text-sm text-gray-500 line-clamp-2">

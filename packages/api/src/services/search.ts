@@ -7,19 +7,19 @@ export const meili = new MeiliSearch({ host: meiliUrl, apiKey: meiliKey });
 
 const INDEX_CONFIGS: Record<string, { filterableAttributes: string[]; searchableAttributes: string[] }> = {
   memories: {
-    filterableAttributes: ['ownerId', 'agentId', 'category'],
+    filterableAttributes: ['ownerId', 'agentId', 'poolId', 'category'],
     searchableAttributes: ['content', 'tags'],
   },
   entities: {
-    filterableAttributes: ['ownerId', 'agentId', 'type'],
+    filterableAttributes: ['ownerId', 'agentId', 'poolId', 'type'],
     searchableAttributes: ['name', 'type'],
   },
   learnings: {
-    filterableAttributes: ['ownerId', 'agentId', 'category', 'status', 'priority', 'area'],
+    filterableAttributes: ['ownerId', 'agentId', 'poolId', 'category', 'status', 'priority', 'area'],
     searchableAttributes: ['summary', 'details', 'suggestedAction', 'tags'],
   },
   skills: {
-    filterableAttributes: ['ownerId', 'agentId', 'status'],
+    filterableAttributes: ['ownerId', 'agentId', 'poolId', 'status'],
     searchableAttributes: ['name', 'description', 'source'],
   },
 };

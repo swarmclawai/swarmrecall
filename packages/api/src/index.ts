@@ -15,8 +15,11 @@ import registerRouter from './routes/register.js';
 import claimRouter from './routes/claim.js';
 import exportRouter from './routes/export.js';
 import statsRouter from './routes/stats.js';
+import poolsRouter from './routes/pools.js';
+import agentPoolsRouter from './routes/agentPools.js';
 import { apiKeyAuth, firebaseAuth } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
+import { poolCacheMiddleware } from './middleware/poolCache.js';
 import { RATE_LIMIT_REGISTER } from '@swarmrecall/shared';
 import { ensureIndexes } from './services/search.js';
 import { connectRedis } from './lib/redis.js';
@@ -42,18 +45,20 @@ export function createApp() {
   // Claim (Firebase auth + rate limiting)
   app.route('/api/v1/claim', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', claimRouter); return r; })());
 
-  // Agent routes (API key auth + rate limiting)
-  app.route('/api/v1/memory', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', memoryRouter); return r; })());
-  app.route('/api/v1/knowledge', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', knowledgeRouter); return r; })());
-  app.route('/api/v1/learnings', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', learningsRouter); return r; })());
-  app.route('/api/v1/skills', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', skillsRouter); return r; })());
+  // Agent routes (API key auth + rate limiting + pool cache)
+  app.route('/api/v1/memory', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.use('*', poolCacheMiddleware); r.route('/', memoryRouter); return r; })());
+  app.route('/api/v1/knowledge', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.use('*', poolCacheMiddleware); r.route('/', knowledgeRouter); return r; })());
+  app.route('/api/v1/learnings', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.use('*', poolCacheMiddleware); r.route('/', learningsRouter); return r; })());
+  app.route('/api/v1/skills', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.use('*', poolCacheMiddleware); r.route('/', skillsRouter); return r; })());
   app.route('/api/v1/export', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', exportRouter); return r; })());
+  app.route('/api/v1/pools', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', agentPoolsRouter); return r; })());
 
   // Dashboard routes (Firebase auth + rate limiting)
   app.route('/api/v1/owners', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', ownersRouter); return r; })());
   app.route('/api/v1/agents', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', agentsRouter); return r; })());
   app.route('/api/v1/api-keys', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', apikeysRouter); return r; })());
   app.route('/api/v1/stats', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', statsRouter); return r; })());
+  app.route('/api/v1/manage/pools', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', poolsRouter); return r; })());
 
   // Global error handler
   app.onError((err, c) => {

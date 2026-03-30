@@ -122,6 +122,7 @@ memory
   .option('-c, --category <cat>', 'Category', 'fact')
   .option('-i, --importance <n>', 'Importance (0-1)', '0.5')
   .option('-t, --tags <tags>', 'Comma-separated tags')
+  .option('-p, --pool <poolId>', 'Pool to write to')
   .action(async (content: string, opts) => {
     const client = getClient();
     const result = await client.memory.store({
@@ -129,6 +130,7 @@ memory
       category: opts.category,
       importance: parseFloat(opts.importance),
       tags: opts.tags?.split(',') ?? [],
+      poolId: opts.pool,
     });
     output(result);
   });
@@ -187,12 +189,14 @@ knowledge
   .requiredOption('--type <type>', 'Entity type')
   .requiredOption('--name <name>', 'Entity name')
   .option('--props <json>', 'Properties as JSON', '{}')
+  .option('-p, --pool <poolId>', 'Pool to write to')
   .action(async (opts) => {
     const client = getClient();
     const result = await client.knowledge.entities.create({
       type: opts.type,
       name: opts.name,
       properties: JSON.parse(opts.props),
+      poolId: opts.pool,
     });
     output(result);
   });
@@ -234,6 +238,7 @@ learnings
   .option('--details <text>', 'Details')
   .option('--priority <p>', 'Priority', 'medium')
   .option('--area <area>', 'Area')
+  .option('-p, --pool <poolId>', 'Pool to write to')
   .action(async (opts) => {
     const client = getClient();
     const result = await client.learnings.log({
@@ -242,6 +247,7 @@ learnings
       details: opts.details,
       priority: opts.priority,
       area: opts.area,
+      poolId: opts.pool,
     });
     output(result);
   });
@@ -284,13 +290,37 @@ skills
   .requiredOption('--name <name>', 'Skill name')
   .option('--source <source>', 'Source (clawhub slug or git URL)')
   .option('--version <version>', 'Version')
+  .option('-p, --pool <poolId>', 'Pool to write to')
   .action(async (opts) => {
     const client = getClient();
     const result = await client.skills.register({
       name: opts.name,
       source: opts.source,
       version: opts.version,
+      poolId: opts.pool,
     });
+    output(result);
+  });
+
+// --- Pools ---
+
+const pools = program.command('pools');
+
+pools
+  .command('list')
+  .description('List pools this agent belongs to')
+  .action(async () => {
+    const client = getClient();
+    const result = await client.pools.list();
+    output(result);
+  });
+
+pools
+  .command('show <poolId>')
+  .description('Show pool details and access levels')
+  .action(async (poolId: string) => {
+    const client = getClient();
+    const result = await client.pools.get(poolId);
     output(result);
   });
 

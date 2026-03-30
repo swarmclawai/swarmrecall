@@ -1,3 +1,20 @@
+---
+name: swarmrecall-memory
+description: Conversational memory persistence with semantic search and session tracking via the SwarmRecall API. Stores and retrieves agent memories with vector embeddings for contextual recall.
+metadata:
+  openclaw:
+    emoji: "\U0001F9E0"
+    requires:
+      env: [SWARMRECALL_API_KEY]
+    primaryEnv: SWARMRECALL_API_KEY
+    privacyPolicy: Memory content is stored on SwarmRecall servers (api.swarmrecall.ai). Data is scoped per agent and owner. The agent must have user consent before storing personal or sensitive information.
+    dataHandling: All data is transmitted over HTTPS. Memories are stored in PostgreSQL with pgvector embeddings. Data is tenant-isolated by owner ID and agent ID.
+version: 1.0.3
+author: swarmclawai
+homepage: https://www.swarmrecall.ai
+tags: [memory, ai-agents, semantic-search, persistence, recall]
+---
+
 # SwarmRecall Memory
 
 Conversational memory persistence with semantic search and session tracking via the SwarmRecall API.
@@ -14,7 +31,7 @@ Before making any API calls, check for a `SWARMRECALL_API_KEY` environment varia
 
    { "name": "<your-agent-name>" }
    ```
-3. The response returns `{ "apiKey": "...", "claimToken": "..." }`. Save the `apiKey` as `SWARMRECALL_API_KEY` for all subsequent requests.
+3. The response returns `{ "apiKey": "...", "claimToken": "..." }`. Save the `apiKey` to the `SWARMRECALL_API_KEY` environment variable for all subsequent requests. Do NOT write the key to disk or any file without user consent.
 4. Tell the user: "SwarmRecall is set up! To manage your agent's data, visit swarmrecall.ai/claim with code: `<claimToken>`"
 
 ## Authentication
@@ -30,6 +47,14 @@ Authorization: Bearer <SWARMRECALL_API_KEY>
 
 All endpoints below are prefixed with `/api/v1`.
 
+## Privacy & Data Handling
+
+- All data is sent to `api.swarmrecall.ai` over HTTPS
+- Memory content is stored server-side with vector embeddings for semantic search
+- Data is isolated per agent and owner — no cross-tenant access
+- Before storing user-provided content, ensure the user has consented to external storage
+- The `SWARMRECALL_API_KEY` should be stored as an environment variable only, not written to disk
+
 ## Endpoints
 
 ### Store a memory
@@ -40,7 +65,8 @@ POST /api/v1/memory
   "category": "preference",   // fact | preference | decision | context | session_summary
   "importance": 0.8,           // 0.0 to 1.0
   "tags": ["ui"],
-  "metadata": {}
+  "metadata": {},
+  "poolId": "<uuid>"           // optional — write to shared pool
 }
 ```
 
@@ -73,7 +99,10 @@ DELETE /api/v1/memory/:id
 ### Start a session
 ```
 POST /api/v1/memory/sessions
-{ "context": {} }
+{
+  "context": {},
+  "poolId": "<uuid>"           // optional — write to shared pool
+}
 ```
 
 ### Get current session
@@ -98,3 +127,11 @@ GET /api/v1/memory/sessions?limit=20&offset=0
 - On fact, preference, or decision: call `POST /api/v1/memory` with appropriate category and importance.
 - On recall needed: call `GET /api/v1/memory/search?q=<query>` and use returned memories to inform your response.
 - On session end: call `PATCH /api/v1/memory/sessions/:id` with `ended: true` and a summary.
+
+## Shared Pools
+
+- The `POST /api/v1/memory` and `POST /api/v1/memory/sessions` endpoints accept an optional `"poolId"` field.
+- When `poolId` is provided, the memory or session is shared with all pool members who have memory read access.
+- The agent must have readwrite access to the pool's memory module to write shared memories.
+- Search (`GET /api/v1/memory/search`) and list (`GET /api/v1/memory`) results automatically include data from pools the agent belongs to.
+- Pool data in responses includes `poolId` and `poolName` fields to distinguish shared data from the agent's own data.

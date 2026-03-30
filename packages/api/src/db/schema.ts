@@ -49,6 +49,45 @@ export const agents = pgTable(
   (t) => [index('agents_owner_idx').on(t.ownerId)],
 );
 
+// --- Pools ---
+
+export const pools = pgTable(
+  'pools',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id').notNull().references(() => owners.id),
+    name: text('name').notNull(),
+    description: text('description'),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('pools_owner_idx').on(t.ownerId)],
+);
+
+export const poolMembers = pgTable(
+  'pool_members',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    poolId: uuid('pool_id').notNull().references(() => pools.id),
+    agentId: uuid('agent_id').notNull().references(() => agents.id),
+    ownerId: uuid('owner_id').notNull().references(() => owners.id),
+    memoryAccess: text('memory_access').notNull().default('none'),
+    knowledgeAccess: text('knowledge_access').notNull().default('none'),
+    learningsAccess: text('learnings_access').notNull().default('none'),
+    skillsAccess: text('skills_access').notNull().default('none'),
+    joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('pool_members_pool_idx').on(t.poolId),
+    index('pool_members_agent_idx').on(t.agentId),
+    index('pool_members_owner_idx').on(t.ownerId),
+    uniqueIndex('pool_members_pool_agent_idx').on(t.poolId, t.agentId),
+  ],
+);
+
+// --- API Keys ---
+
 export const apiKeys = pgTable(
   'api_keys',
   {
@@ -99,6 +138,7 @@ export const memorySessions = pgTable(
     context: jsonb('context'),
     currentState: jsonb('current_state'),
     summary: text('summary'),
+    poolId: uuid('pool_id').references(() => pools.id),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp('ended_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -106,6 +146,7 @@ export const memorySessions = pgTable(
   (t) => [
     index('memory_sessions_agent_idx').on(t.agentId),
     index('memory_sessions_owner_idx').on(t.ownerId),
+    index('memory_sessions_pool_idx').on(t.poolId),
   ],
 );
 
@@ -122,6 +163,7 @@ export const memories = pgTable(
     metadata: jsonb('metadata'),
     embedding: vector('embedding'),
     sessionId: uuid('session_id').references(() => memorySessions.id),
+    poolId: uuid('pool_id').references(() => pools.id),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -130,6 +172,7 @@ export const memories = pgTable(
     index('memories_agent_idx').on(t.agentId),
     index('memories_owner_idx').on(t.ownerId),
     index('memories_category_idx').on(t.category),
+    index('memories_pool_idx').on(t.poolId),
   ],
 );
 
@@ -145,6 +188,7 @@ export const entities = pgTable(
     name: text('name').notNull(),
     properties: jsonb('properties').notNull().default({}),
     embedding: vector('embedding'),
+    poolId: uuid('pool_id').references(() => pools.id),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -153,6 +197,7 @@ export const entities = pgTable(
     index('entities_agent_idx').on(t.agentId),
     index('entities_owner_idx').on(t.ownerId),
     index('entities_type_idx').on(t.type),
+    index('entities_pool_idx').on(t.poolId),
   ],
 );
 
@@ -166,6 +211,7 @@ export const relations = pgTable(
     toEntityId: uuid('to_entity_id').notNull().references(() => entities.id),
     relation: text('relation').notNull(),
     properties: jsonb('properties'),
+    poolId: uuid('pool_id').references(() => pools.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -173,6 +219,7 @@ export const relations = pgTable(
     index('relations_owner_idx').on(t.ownerId),
     index('relations_from_idx').on(t.fromEntityId),
     index('relations_to_idx').on(t.toEntityId),
+    index('relations_pool_idx').on(t.poolId),
   ],
 );
 
@@ -209,6 +256,7 @@ export const learnings = pgTable(
     embedding: vector('embedding'),
     tags: text('tags').array().notNull().default([]),
     metadata: jsonb('metadata'),
+    poolId: uuid('pool_id').references(() => pools.id),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -218,6 +266,7 @@ export const learnings = pgTable(
     index('learnings_owner_idx').on(t.ownerId),
     index('learnings_category_idx').on(t.category),
     index('learnings_status_idx').on(t.status),
+    index('learnings_pool_idx').on(t.poolId),
   ],
 );
 
@@ -234,11 +283,13 @@ export const learningPatterns = pgTable(
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     promotedAt: timestamp('promoted_at', { withTimezone: true }),
     learningIds: text('learning_ids').array().notNull().default([]),
+    poolId: uuid('pool_id').references(() => pools.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('learning_patterns_agent_idx').on(t.agentId),
     index('learning_patterns_owner_idx').on(t.ownerId),
+    index('learning_patterns_pool_idx').on(t.poolId),
   ],
 );
 
@@ -261,12 +312,14 @@ export const agentSkills = pgTable(
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     invocationCount: integer('invocation_count').notNull().default(0),
     errorCount: integer('error_count').notNull().default(0),
+    poolId: uuid('pool_id').references(() => pools.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('agent_skills_agent_idx').on(t.agentId),
     index('agent_skills_owner_idx').on(t.ownerId),
+    index('agent_skills_pool_idx').on(t.poolId),
   ],
 );
 
