@@ -2,7 +2,7 @@ import { eq, and, desc, sql, gte, isNull, SQL } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { learnings, learningPatterns } from '../db/schema.js';
 import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
-import { indexDocument, searchDocuments } from './search.js';
+import { searchIndex } from './search.js';
 import { logAuditEvent } from './audit.js';
 import {
   SIMILARITY_THRESHOLD,
@@ -11,6 +11,43 @@ import {
   PROMOTION_WINDOW_DAYS,
 } from '@swarmrecall/shared';
 import type { LearningCreate, LearningUpdate, LearningList } from '@swarmrecall/shared';
+
+type SearchableLearningRow = Pick<
+  typeof learnings.$inferSelect,
+  | 'id'
+  | 'agentId'
+  | 'ownerId'
+  | 'category'
+  | 'summary'
+  | 'details'
+  | 'status'
+  | 'priority'
+  | 'area'
+  | 'suggestedAction'
+  | 'tags'
+  | 'archivedAt'
+>;
+
+export async function syncLearningSearchDocument(row: SearchableLearningRow) {
+  if (row.archivedAt) {
+    await searchIndex.removeDocument('learnings', row.id);
+    return;
+  }
+
+  await searchIndex.indexDocument('learnings', {
+    id: row.id,
+    agentId: row.agentId,
+    ownerId: row.ownerId,
+    category: row.category,
+    summary: row.summary,
+    details: row.details,
+    status: row.status,
+    priority: row.priority,
+    area: row.area,
+    suggestedAction: row.suggestedAction,
+    tags: row.tags,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,19 +84,7 @@ export async function logLearning(agentId: string, ownerId: string, data: Learni
     .returning();
 
   // 3. Index in Meilisearch
-  await indexDocument('learnings', {
-    id: learning.id,
-    agentId,
-    ownerId,
-    category: learning.category,
-    summary: learning.summary,
-    details: learning.details,
-    status: learning.status,
-    priority: learning.priority,
-    area: learning.area,
-    suggestedAction: learning.suggestedAction,
-    tags: learning.tags,
-  });
+  await syncLearningSearchDocument(learning);
 
   // 4. Pattern detection — find similar learnings
   let patternId: string | null = null;
@@ -267,10 +292,10 @@ export async function searchLearnings(
 
   if (embedding.length === 0) {
     // Fall back to Meilisearch text search
-    const results = await searchDocuments(
-      'learnings',
-      query,
-      `ownerId = "${ownerId}" AND agentId = "${agentId}"`,
+      const results = await searchIndex.searchDocuments(
+        'learnings',
+        query,
+        `ownerId = "${ownerId}" AND agentId = "${agentId}"`,
       limit,
     );
     return { data: results.hits, total: results.estimatedTotalHits };
@@ -375,6 +400,10 @@ export async function updateLearning(
       ),
     )
     .returning();
+
+  if (updated) {
+    await syncLearningSearchDocument(updated);
+  }
 
   return updated ?? null;
 }

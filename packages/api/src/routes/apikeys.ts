@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { ApiKeyCreateSchema } from '@swarmrecall/shared';
+import { parseJsonBody } from '../lib/request.js';
 import type { DashboardAuthPayload } from '../middleware/auth.js';
 import { ApiKeyValidationError, createApiKey, listApiKeys, revokeApiKey } from '../services/apikeys.js';
 import { logAuditEvent } from '../services/audit.js';
@@ -9,8 +10,12 @@ const apikeysRouter = new Hono();
 // POST / — Create API key (returns full key once)
 apikeysRouter.post('/', async (c) => {
   const auth = c.get('auth' as never) as DashboardAuthPayload;
-  const body = await c.req.json();
-  const parsed = ApiKeyCreateSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = ApiKeyCreateSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);

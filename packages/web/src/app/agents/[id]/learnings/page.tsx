@@ -2,33 +2,32 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { apiFetch } from '@/lib/api';
+import { LEARNING_CATEGORIES, LEARNING_PRIORITIES, LEARNING_STATUSES } from '@swarmrecall/shared';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 
 interface Learning {
   id: string;
-  content: string;
+  summary: string;
+  details?: string | null;
   category: string;
   status: string;
   priority: string;
-  confidence: number;
-  promotionCandidate: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 interface Pattern {
   id: string;
-  name: string;
-  description: string;
-  occurrences: number;
-  lastSeen: string;
+  patternSummary: string;
+  recurrenceCount: number;
+  lastSeenAt: string;
 }
 
-const categoryOptions = ['all', 'technique', 'preference', 'fact', 'rule', 'heuristic'];
-const statusOptions = ['all', 'active', 'archived', 'promoted'];
-const priorityOptions = ['all', 'high', 'medium', 'low'];
+const categoryOptions = ['all', ...LEARNING_CATEGORIES];
+const statusOptions = ['all', ...LEARNING_STATUSES];
+const priorityOptions = ['all', ...LEARNING_PRIORITIES];
 
 export default function LearningsPage() {
   const params = useParams();
@@ -55,21 +54,21 @@ export default function LearningsPage() {
       const qs = queryParams.toString();
 
       const [learningsData, patternsData] = await Promise.allSettled([
-        apiFetch<{ learnings: Learning[] }>(
+        apiFetch<{ data: Learning[] }>(
           `/agents/${agentId}/learnings${qs ? `?${qs}` : ''}`,
           token,
         ),
-        apiFetch<{ patterns: Pattern[] }>(
+        apiFetch<{ data: Pattern[] }>(
           `/agents/${agentId}/learnings/patterns`,
           token,
         ),
       ]);
 
       if (learningsData.status === 'fulfilled') {
-        setLearnings(learningsData.value.learnings ?? []);
+        setLearnings(learningsData.value.data ?? []);
       }
       if (patternsData.status === 'fulfilled') {
-        setPatterns(patternsData.value.patterns ?? []);
+        setPatterns(patternsData.value.data ?? []);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load learnings');
@@ -97,12 +96,14 @@ export default function LearningsPage() {
 
   const statusColor = (s: string) => {
     switch (s) {
-      case 'active':
+      case 'resolved':
         return 'bg-green-50 text-green-700';
       case 'promoted':
         return 'bg-blue-50 text-blue-700';
-      case 'archived':
+      case 'wont_fix':
         return 'bg-gray-100 text-gray-500';
+      case 'in_progress':
+        return 'bg-amber-50 text-amber-700';
       default:
         return 'bg-gray-100 text-gray-600';
     }
@@ -213,22 +214,16 @@ export default function LearningsPage() {
                 {learnings.map((learning) => (
                   <div
                     key={learning.id}
-                    className={`rounded-xl border bg-white p-5 ${
-                      learning.promotionCandidate
-                        ? 'border-amber-300 ring-1 ring-amber-100'
-                        : 'border-gray-200'
-                    }`}
+                    className="rounded-xl border border-gray-200 bg-white p-5"
                   >
-                    {learning.promotionCandidate && (
-                      <div className="mb-3 flex items-center gap-2">
-                        <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-                          Promotion Candidate
-                        </span>
-                      </div>
-                    )}
                     <p className="text-sm text-gray-900 whitespace-pre-wrap">
-                      {learning.content}
+                      {learning.summary}
                     </p>
+                    {learning.details && (
+                      <p className="mt-2 text-sm text-gray-500 whitespace-pre-wrap">
+                        {learning.details}
+                      </p>
+                    )}
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                         {learning.category}
@@ -242,9 +237,6 @@ export default function LearningsPage() {
                         className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor(learning.priority)}`}
                       >
                         {learning.priority}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        Confidence: {Math.round(learning.confidence * 100)}%
                       </span>
                     </div>
                     <p className="mt-2 text-xs text-gray-400">
@@ -277,18 +269,15 @@ export default function LearningsPage() {
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="text-sm font-medium text-gray-900">
-                          {pattern.name}
+                          {pattern.patternSummary}
                         </h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                          {pattern.description}
-                        </p>
                       </div>
                       <span className="shrink-0 inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                        {pattern.occurrences} occurrences
+                        {pattern.recurrenceCount} occurrences
                       </span>
                     </div>
                     <p className="mt-2 text-xs text-gray-400">
-                      Last seen {new Date(pattern.lastSeen).toLocaleString()}
+                      Last seen {new Date(pattern.lastSeenAt).toLocaleString()}
                     </p>
                   </div>
                 ))}

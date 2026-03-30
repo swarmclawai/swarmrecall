@@ -13,11 +13,16 @@ setInterval(() => {
   }
 }, 60_000).unref();
 
+export function getRateLimitIdentifier(c: Pick<Context, 'get' | 'req'>) {
+  const auth = c.get('auth') as { keyId?: string; ownerId: string } | undefined;
+  const forwardedFor = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
+  return auth?.keyId ?? auth?.ownerId ?? forwardedFor ?? 'anon';
+}
+
 export function rateLimit(windowMs = 60_000, maxRequests?: number) {
   return async (c: Context, next: Next) => {
     const limit = maxRequests ?? (c.req.path.includes('/search') ? RATE_LIMIT_SEARCH : RATE_LIMIT_DEFAULT);
-    const auth = c.get('auth') as { keyId?: string; ownerId: string } | undefined;
-    const identifier = auth?.keyId ?? auth?.ownerId ?? c.req.header('x-forwarded-for') ?? 'anon';
+    const identifier = getRateLimitIdentifier(c);
     const key = `rl:${identifier}`;
 
     const current = await redisIncr(key);

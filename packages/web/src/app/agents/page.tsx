@@ -3,7 +3,7 @@
 import { useAuth } from '@/lib/auth-context';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface Agent {
   id: string;
@@ -23,7 +23,7 @@ export default function AgentsPage() {
   const [newDescription, setNewDescription] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     try {
       const token = await getToken();
       const data = await apiFetch<{ data: Agent[] }>('/agents', token);
@@ -33,11 +33,11 @@ export default function AgentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getToken]);
 
   useEffect(() => {
-    loadAgents();
-  }, [getToken]);
+    void loadAgents();
+  }, [loadAgents]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

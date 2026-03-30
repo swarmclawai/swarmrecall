@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import { AuthGuard } from '@/components/AuthGuard';
 import { useAuth } from '@/lib/auth-context';

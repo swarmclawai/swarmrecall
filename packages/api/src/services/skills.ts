@@ -2,7 +2,7 @@ import { eq, and, desc, sql, isNull, SQL } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { agentSkills } from '../db/schema.js';
 import { generateEmbedding } from '../lib/embeddings.js';
-import { indexDocument, removeDocument, searchDocuments } from './search.js';
+import { searchIndex } from './search.js';
 import { logAuditEvent } from './audit.js';
 import { SIMILARITY_THRESHOLD } from '@swarmrecall/shared';
 import type { SkillRegister, SkillUpdate, SkillList } from '@swarmrecall/shared';
@@ -36,7 +36,7 @@ export async function registerSkill(agentId: string, ownerId: string, data: Skil
     .returning();
 
   // Index in Meilisearch
-  await indexDocument('skills', {
+  await searchIndex.indexDocument('skills', {
     id: skill.id,
     agentId,
     ownerId,
@@ -138,7 +138,7 @@ export async function updateSkill(
 
   if (updated) {
     // Re-index in Meilisearch
-    await indexDocument('skills', {
+    await searchIndex.indexDocument('skills', {
       id: updated.id,
       agentId,
       ownerId,
@@ -169,7 +169,7 @@ export async function removeSkill(id: string, agentId: string, ownerId: string) 
     .returning();
 
   if (deleted) {
-    await removeDocument('skills', id);
+    await searchIndex.removeDocument('skills', id);
 
     await logAuditEvent({
       eventType: 'skill.removed',
@@ -199,7 +199,7 @@ export async function suggestSkills(
 
   if (embedding.length === 0) {
     // Fall back to Meilisearch text search
-    const results = await searchDocuments(
+    const results = await searchIndex.searchDocuments(
       'skills',
       context,
       `ownerId = "${ownerId}" AND agentId = "${agentId}" AND status = "active"`,
@@ -213,7 +213,7 @@ export async function suggestSkills(
   // Skills don't have their own embedding column, so we generate embeddings
   // from the description. We'll use Meilisearch + vector comparison on name+description.
   // Since agentSkills doesn't have an embedding column, use text search.
-  const results = await searchDocuments(
+  const results = await searchIndex.searchDocuments(
     'skills',
     context,
     `ownerId = "${ownerId}" AND agentId = "${agentId}" AND status = "active"`,

@@ -9,13 +9,13 @@ import { useEffect, useState } from 'react';
 interface Skill {
   id: string;
   name: string;
-  description?: string;
-  version: string;
-  source: string;
+  description?: string | null;
+  version?: string | null;
+  source?: string | null;
   status: string;
   invocationCount: number;
-  lastInvokedAt?: string;
-  installedAt: string;
+  lastUsedAt?: string | null;
+  createdAt: string;
 }
 
 export default function SkillsPage() {
@@ -31,11 +31,11 @@ export default function SkillsPage() {
     async function load() {
       try {
         const token = await getToken();
-        const data = await apiFetch<{ skills: Skill[] }>(
+        const data = await apiFetch<{ data: Skill[] }>(
           `/agents/${agentId}/skills`,
           token,
         );
-        setSkills(data.skills ?? []);
+        setSkills(data.data ?? []);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to load skills');
       } finally {
@@ -125,7 +125,7 @@ export default function SkillsPage() {
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500">Source</span>
-                    <span className="text-gray-700">{skill.source}</span>
+                    <span className="text-gray-700">{skill.source ?? 'Unknown'}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500">Invocations</span>
@@ -133,18 +133,18 @@ export default function SkillsPage() {
                       {skill.invocationCount.toLocaleString()}
                     </span>
                   </div>
-                  {skill.lastInvokedAt && (
+                  {skill.lastUsedAt && (
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-500">Last used</span>
                       <span className="text-gray-700">
-                        {new Date(skill.lastInvokedAt).toLocaleDateString()}
+                        {new Date(skill.lastUsedAt).toLocaleDateString()}
                       </span>
                     </div>
                   )}
                 </div>
 
                 <p className="mt-4 text-xs text-gray-400">
-                  Installed {new Date(skill.installedAt).toLocaleDateString()}
+                  Installed {new Date(skill.createdAt).toLocaleDateString()}
                 </p>
               </div>
             ))}

@@ -90,7 +90,7 @@ export default function LoginPage() {
           {/* Header */}
           <div className="space-y-3">
             <h1 className="text-2xl font-bold tracking-tight text-[#00FF88] font-mono">
-              // sign in
+              {'// sign in'}
             </h1>
             <p className="text-[#888] text-sm font-mono">
               Access your agent dashboard and memory controls.

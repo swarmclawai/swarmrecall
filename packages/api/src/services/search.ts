@@ -69,3 +69,9 @@ export async function searchDocuments(
     return { hits: [], estimatedTotalHits: 0 };
   }
 }
+
+export const searchIndex = {
+  indexDocument,
+  removeDocument,
+  searchDocuments,
+};

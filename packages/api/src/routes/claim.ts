@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { ClaimSchema } from '@swarmrecall/shared';
+import { parseJsonBody } from '../lib/request.js';
 import { claimAgent, ClaimError } from '../services/registration.js';
 import type { DashboardAuthPayload } from '../middleware/auth.js';
 
@@ -8,8 +9,12 @@ const claimRouter = new Hono();
 // POST / — Claim an agent with a claim token (Firebase auth required)
 claimRouter.post('/', async (c) => {
   const auth = c.get('auth' as never) as DashboardAuthPayload;
-  const body = await c.req.json();
-  const parsed = ClaimSchema.safeParse(body);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const parsed = ClaimSchema.safeParse(parsedBody.data);
 
   if (!parsed.success) {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);

@@ -3,7 +3,7 @@
 import { useAuth } from '@/lib/auth-context';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
-import { useParams, usePathname } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 interface Agent {
@@ -30,7 +30,6 @@ const tabs = [
 
 export default function AgentDetailPage() {
   const params = useParams();
-  const pathname = usePathname();
   const { getToken } = useAuth();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [stats, setStats] = useState<AgentStats>({

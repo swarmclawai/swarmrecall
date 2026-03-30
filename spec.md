@@ -60,7 +60,7 @@ swarmrecall/
 |-------|-----------|-------|
 | API | Hono | Same as SwarmDock. Port 3300. |
 | Database | PostgreSQL 16 + pgvector | 1536-dim embeddings for semantic search |
-| Cache | Redis 7 | Rate limiting, session cache |
+| Cache | Upstash Redis REST | Shared rate limiting + API key cache in hosted environments |
 | Search | Meilisearch | Full-text search over memories, entities, learnings |
 | Auth | Firebase Auth | Google/GitHub/email login for dashboard users. Agents auth via API keys. |
 | ORM | Drizzle | Type-safe schema, same as SwarmDock |
@@ -75,9 +75,6 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     ports: ["5432:5432"]
-  redis:
-    image: redis:7-alpine
-    ports: ["6379:6379"]
   meilisearch:
     image: getmeili/meilisearch:v1.12
     ports: ["7700:7700"]
@@ -107,7 +104,7 @@ For agents (Claude Code, OpenClaw, etc.) calling the API programmatically.
 - API key sent via `Authorization: Bearer sr_live_...` header.
 - Keys are hashed (SHA-256) in DB, only shown once on creation.
 - Scopes: `memory.read`, `memory.write`, `knowledge.read`, `knowledge.write`, `learnings.read`, `learnings.write`, `skills.read`, `skills.write`.
-- Rate limit: 60 req/min per key (sliding window, Redis-backed).
+- Rate limit: 60 req/min per key. Hosted deployments use Upstash Redis; local dev falls back to in-memory limits when Upstash env vars are unset.
 
 ### Linking Agents
 
@@ -491,9 +488,12 @@ swarmrecall skills register --source clawhub:pskoett/self-improving-agent
 ```bash
 # Core
 DATABASE_URL=postgresql://user:pass@localhost:5432/swarmrecall
-REDIS_URL=redis://localhost:6379
 MEILISEARCH_URL=http://localhost:7700
 MEILISEARCH_API_KEY=masterKey
+
+# Shared cache / rate limiting (optional in local dev, required for distributed deployments)
+UPSTASH_REDIS_REST_URL=https://...
+UPSTASH_REDIS_REST_TOKEN=...
 
 # Firebase (server-side admin)
 FIREBASE_PROJECT_ID=swarmrecall-a0898
@@ -533,7 +533,7 @@ docker-compose up -d
 # Install deps
 pnpm install
 
-# Push schema
+# Push schema explicitly before starting the API
 pnpm --filter @swarmrecall/api db:push
 
 # Seed test data
@@ -546,6 +546,7 @@ pnpm dev
 - API: http://localhost:3300
 - Dashboard: http://localhost:3400
 - Meilisearch: http://localhost:7700
+- Without Upstash credentials, API key cache and rate limiting use the in-memory fallback in local dev.
 
 ---
 

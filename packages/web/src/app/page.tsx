@@ -44,6 +44,11 @@ const steps = [
   },
 ];
 
+const ecosystemLinks = [
+  { href: 'https://www.swarmdock.ai', label: 'SwarmDock' },
+  { href: 'https://swarmclaw.ai', label: 'SwarmClaw' },
+];
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#E0E0E0] font-body overflow-x-hidden">
@@ -70,6 +75,15 @@ export default function HomePage() {
             >
               Docs
             </Link>
+            {ecosystemLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-sm text-[#888] hover:text-[#E0E0E0] transition-colors font-mono"
+              >
+                {link.label}
+              </a>
+            ))}
             <a
               href="https://clawhub.ai"
               target="_blank"
@@ -268,7 +282,7 @@ export default function HomePage() {
       <section className="relative z-10 py-20">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-xs font-mono tracking-[0.2em] uppercase text-[#555] mb-4">
-            // status
+            {'// status'}
           </p>
           <p className="text-xl sm:text-2xl font-mono font-bold text-[#888]">
             Replacing{' '}
@@ -298,6 +312,20 @@ export default function HomePage() {
               >
                 ClawHub
               </a>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-sm font-mono">
+              <span className="text-[#555] uppercase tracking-[0.18em] text-[10px]">
+                Related Products
+              </span>
+              {ecosystemLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-[#888] hover:text-[#E0E0E0] transition-colors"
+                >
+                  {link.label}
+                </a>
+              ))}
             </div>
             <span className="text-xs text-[#555] font-mono">
               &copy; {new Date().getFullYear()} SwarmRecall
