@@ -1,0 +1,32 @@
+{
+  "name": "swarmrecall",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Hosted agent persistence layer — memory, knowledge, learnings, and skills as a service",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "db:push": "pnpm --filter @swarmrecall/api db:push",
+    "db:generate": "pnpm --filter @swarmrecall/api db:generate",
+    "db:seed": "pnpm --filter @swarmrecall/api db:seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
+  },
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@firebase/util",
+      "esbuild",
+      "protobufjs",
+      "sharp"
+    ]
+  }
+}

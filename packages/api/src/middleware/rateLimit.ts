@@ -1,0 +1,44 @@
+import type { Context, Next } from 'hono';
+import { redis } from '../lib/redis.js';
+import { RATE_LIMIT_DEFAULT, RATE_LIMIT_SEARCH } from '@swarmrecall/shared';
+
+// In-memory fallback when Redis is unavailable
+const inMemory = new Map<string, { count: number; resetAt: number }>();
+
+export function rateLimit(windowMs = 60_000, maxRequests?: number) {
+  return async (c: Context, next: Next) => {
+    const limit = maxRequests ?? (c.req.path.includes('/search') ? RATE_LIMIT_SEARCH : RATE_LIMIT_DEFAULT);
+    const auth = c.get('auth') as { keyId?: string; ownerId: string } | undefined;
+    const identifier = auth?.keyId ?? auth?.ownerId ?? c.req.header('x-forwarded-for') ?? 'anon';
+    const key = `rl:${identifier}`;
+
+    try {
+      const current = await redis.incr(key);
+      if (current === 1) {
+        await redis.pexpire(key, windowMs);
+      }
+
+      c.header('X-RateLimit-Limit', String(limit));
+      c.header('X-RateLimit-Remaining', String(Math.max(0, limit - current)));
+
+      if (current > limit) {
+        return c.json({ error: 'Rate limit exceeded' }, 429);
+      }
+    } catch {
+      // Fallback to in-memory
+      const now = Date.now();
+      const entry = inMemory.get(key);
+
+      if (!entry || entry.resetAt < now) {
+        inMemory.set(key, { count: 1, resetAt: now + windowMs });
+      } else {
+        entry.count++;
+        if (entry.count > limit) {
+          return c.json({ error: 'Rate limit exceeded' }, 429);
+        }
+      }
+    }
+
+    await next();
+  };
+}
