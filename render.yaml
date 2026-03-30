@@ -39,6 +39,6 @@ services:
 
 databases:
   - name: swarmrecall-db
-    plan: starter
+    plan: free
     postgresMajorVersion: "16"
     ipAllowList: []
