@@ -4,13 +4,95 @@ import { entities, relations, entityTypes } from '../db/schema.js';
 import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
 import { searchIndex } from './search.js';
 import { logAuditEvent } from './audit.js';
-import { getReadablePoolIds, validatePoolWrite, annotatePoolNames } from './poolAccess.js';
+import {
+  getReadablePoolIds,
+  validatePoolWrite,
+  annotatePoolNames,
+  resolvePoolNames,
+  validatePoolsWriteScope,
+} from './poolAccess.js';
 import type { EntityCreate, EntityUpdate, EntityList, RelationCreate } from '@swarmrecall/shared';
 
 type SearchableEntityRow = Pick<
   typeof entities.$inferSelect,
   'id' | 'ownerId' | 'agentId' | 'name' | 'type' | 'poolId' | 'archivedAt'
 >;
+
+type EntitySearchHit = { id: string; _rankingScore?: number; rankingScore?: number };
+type PublicEntityRow = Pick<
+  typeof entities.$inferSelect,
+  | 'id'
+  | 'agentId'
+  | 'ownerId'
+  | 'type'
+  | 'name'
+  | 'properties'
+  | 'poolId'
+  | 'archivedAt'
+  | 'createdAt'
+  | 'updatedAt'
+>;
+
+const PUBLIC_ENTITY_SELECT = {
+  id: entities.id,
+  agentId: entities.agentId,
+  ownerId: entities.ownerId,
+  type: entities.type,
+  name: entities.name,
+  properties: entities.properties,
+  poolId: entities.poolId,
+  archivedAt: entities.archivedAt,
+  createdAt: entities.createdAt,
+  updatedAt: entities.updatedAt,
+} as const;
+
+function buildEntityAccessCondition(agentId: string, readablePoolIds: string[]) {
+  return readablePoolIds.length > 0
+    ? or(
+        and(eq(entities.agentId, agentId), isNull(entities.poolId)),
+        inArray(entities.poolId, readablePoolIds),
+      )!
+    : and(eq(entities.agentId, agentId), isNull(entities.poolId))!;
+}
+
+function buildRelationAccessCondition(agentId: string, readablePoolIds: string[]) {
+  return readablePoolIds.length > 0
+    ? or(
+        and(eq(relations.agentId, agentId), isNull(relations.poolId)),
+        inArray(relations.poolId, readablePoolIds),
+      )!
+    : and(eq(relations.agentId, agentId), isNull(relations.poolId))!;
+}
+
+function buildEntitySearchFilter(ownerId: string, agentId: string, readablePoolIds: string[]) {
+  const privateFilter = `(agentId = "${agentId}" AND poolId IS NULL)`;
+  if (readablePoolIds.length === 0) {
+    return `ownerId = "${ownerId}" AND ${privateFilter}`;
+  }
+
+  const poolFilter = readablePoolIds.map((id) => `poolId = "${id}"`).join(' OR ');
+  return `ownerId = "${ownerId}" AND (${privateFilter} OR ${poolFilter})`;
+}
+
+function getTextScore(hit: EntitySearchHit) {
+  return hit._rankingScore ?? hit.rankingScore ?? 0.5;
+}
+
+function toSearchableEntity(row: PublicEntityRow) {
+  return {
+    id: row.id,
+    agentId: row.agentId,
+    ownerId: row.ownerId,
+    type: row.type,
+    name: row.name,
+    properties: row.properties,
+    poolId: row.poolId,
+    poolName: null as string | null,
+    archivedAt: row.archivedAt,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
 export async function syncEntitySearchDocument(row: SearchableEntityRow) {
   if (row.archivedAt) {
@@ -32,8 +114,9 @@ export async function syncEntitySearchDocument(row: SearchableEntityRow) {
 // Entities
 // ---------------------------------------------------------------------------
 
-export async function createEntity(agentId: string, ownerId: string, data: EntityCreate) {
+export async function createEntity(agentId: string, ownerId: string, data: EntityCreate, scopes?: string[]) {
   if (data.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, data.poolId, 'knowledge');
   }
 
@@ -75,10 +158,7 @@ export async function listEntities(
   filters: EntityList,
 ) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'knowledge');
-
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(entities.agentId, agentId), inArray(entities.poolId, readablePoolIds))!
-    : eq(entities.agentId, agentId);
+  const agentCondition = buildEntityAccessCondition(agentId, readablePoolIds);
 
   const conditions = [
     eq(entities.ownerId, ownerId),
@@ -124,19 +204,17 @@ export async function getEntity(id: string, agentId: string, ownerId: string) {
 
   if (!entity) return null;
 
-  // Check access: own data or pool data the agent can read
-  if (entity.agentId !== agentId) {
-    if (!entity.poolId) return null;
+  // Check access: private data belongs to the agent; pool data requires membership.
+  if (entity.poolId) {
     const readable = await getReadablePoolIds(agentId, ownerId, 'knowledge');
     if (!readable.includes(entity.poolId)) return null;
+  } else if (entity.agentId !== agentId) {
+    return null;
   }
 
   // Fetch relations where this entity is either "from" or "to"
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'knowledge');
-
-  const relationAgentCondition = readablePoolIds.length > 0
-    ? or(eq(relations.agentId, agentId), inArray(relations.poolId, readablePoolIds))!
-    : eq(relations.agentId, agentId);
+  const relationAgentCondition = buildRelationAccessCondition(agentId, readablePoolIds);
 
   const entityRelations = await db
     .select()
@@ -152,11 +230,25 @@ export async function getEntity(id: string, agentId: string, ownerId: string) {
       ),
     );
 
-  const [annotated] = await annotatePoolNames([{ ...entity, relations: entityRelations }]);
+  const relationPoolIds = [...new Set(entityRelations.filter((r) => r.poolId).map((r) => r.poolId!))];
+  const relationPoolNames = await resolvePoolNames(relationPoolIds);
+  const [annotated] = await annotatePoolNames([{
+    ...entity,
+    relations: entityRelations.map((relation) => ({
+      ...relation,
+      poolName: relation.poolId ? (relationPoolNames.get(relation.poolId) ?? null) : null,
+    })),
+  }]);
   return annotated;
 }
 
-export async function updateEntity(id: string, agentId: string, ownerId: string, data: EntityUpdate) {
+export async function updateEntity(
+  id: string,
+  agentId: string,
+  ownerId: string,
+  data: EntityUpdate,
+  scopes?: string[],
+) {
   // Load entity first to check access
   const [existing] = await db
     .select()
@@ -172,6 +264,7 @@ export async function updateEntity(id: string, agentId: string, ownerId: string,
   if (!existing) return null;
 
   if (existing.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, existing.poolId, 'knowledge');
   } else if (existing.agentId !== agentId) {
     return null;
@@ -208,12 +301,14 @@ export async function updateEntity(id: string, agentId: string, ownerId: string,
 
   if (row) {
     await syncEntitySearchDocument(row);
+    const [annotated] = await annotatePoolNames([row]);
+    return annotated;
   }
 
-  return row ?? null;
+  return null;
 }
 
-export async function archiveEntity(id: string, agentId: string, ownerId: string) {
+export async function archiveEntity(id: string, agentId: string, ownerId: string, scopes?: string[]) {
   // Load entity first to check access
   const [existing] = await db
     .select()
@@ -229,6 +324,7 @@ export async function archiveEntity(id: string, agentId: string, ownerId: string
   if (!existing) return null;
 
   if (existing.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, existing.poolId, 'knowledge');
   } else if (existing.agentId !== agentId) {
     return null;
@@ -263,17 +359,21 @@ export async function archiveEntity(id: string, agentId: string, ownerId: string
 // Relations
 // ---------------------------------------------------------------------------
 
-export async function createRelation(agentId: string, ownerId: string, data: RelationCreate) {
+export async function createRelation(
+  agentId: string,
+  ownerId: string,
+  data: RelationCreate,
+  scopes?: string[],
+) {
   if (data.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, data.poolId, 'knowledge');
   }
 
   // Verify both entities exist and belong to the same owner+agent or readable pools
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'knowledge');
 
-  const entityAgentCondition = readablePoolIds.length > 0
-    ? or(eq(entities.agentId, agentId), inArray(entities.poolId, readablePoolIds))!
-    : eq(entities.agentId, agentId);
+  const entityAgentCondition = buildEntityAccessCondition(agentId, readablePoolIds);
 
   const found = await db
     .select({ id: entities.id })
@@ -316,7 +416,8 @@ export async function createRelation(agentId: string, ownerId: string, data: Rel
     payload: { relation: row.relation, from: row.fromEntityId, to: row.toEntityId, poolId: data.poolId },
   });
 
-  return row;
+  const [annotated] = await annotatePoolNames([row]);
+  return annotated;
 }
 
 export async function listRelations(
@@ -325,10 +426,7 @@ export async function listRelations(
   filters: { entityId?: string; relation?: string; limit: number; offset: number },
 ) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'knowledge');
-
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(relations.agentId, agentId), inArray(relations.poolId, readablePoolIds))!
-    : eq(relations.agentId, agentId);
+  const agentCondition = buildRelationAccessCondition(agentId, readablePoolIds);
 
   const conditions = [
     eq(relations.ownerId, ownerId),
@@ -365,7 +463,7 @@ export async function listRelations(
   return { data: annotated, total: countResult[0].count, limit: filters.limit, offset: filters.offset };
 }
 
-export async function deleteRelation(id: string, agentId: string, ownerId: string) {
+export async function deleteRelation(id: string, agentId: string, ownerId: string, scopes?: string[]) {
   // Load first to check pool write access
   const [existing] = await db
     .select()
@@ -381,6 +479,7 @@ export async function deleteRelation(id: string, agentId: string, ownerId: strin
   if (!existing) return null;
 
   if (existing.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, existing.poolId, 'knowledge');
   } else if (existing.agentId !== agentId) {
     return null;
@@ -413,17 +512,18 @@ export async function traverse(
 ) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'knowledge');
 
+  const poolSql = sql.join(readablePoolIds.map((id) => sql`${id}`), sql`, `);
   const entityAccessCondition = readablePoolIds.length > 0
-    ? sql`(e.agent_id = ${agentId} OR e.pool_id IN (${sql.join(readablePoolIds.map((id) => sql`${id}`), sql`, `)}))`
-    : sql`e.agent_id = ${agentId}`;
+    ? sql`((e.agent_id = ${agentId} AND e.pool_id IS NULL) OR e.pool_id IN (${poolSql}))`
+    : sql`(e.agent_id = ${agentId} AND e.pool_id IS NULL)`;
 
   const entityAccessCondition2 = readablePoolIds.length > 0
-    ? sql`(e2.agent_id = ${agentId} OR e2.pool_id IN (${sql.join(readablePoolIds.map((id) => sql`${id}`), sql`, `)}))`
-    : sql`e2.agent_id = ${agentId}`;
+    ? sql`((e2.agent_id = ${agentId} AND e2.pool_id IS NULL) OR e2.pool_id IN (${poolSql}))`
+    : sql`(e2.agent_id = ${agentId} AND e2.pool_id IS NULL)`;
 
   const relationAccessCondition = readablePoolIds.length > 0
-    ? sql`(r.agent_id = ${agentId} OR r.pool_id IN (${sql.join(readablePoolIds.map((id) => sql`${id}`), sql`, `)}))`
-    : sql`r.agent_id = ${agentId}`;
+    ? sql`((r.agent_id = ${agentId} AND r.pool_id IS NULL) OR r.pool_id IN (${poolSql}))`
+    : sql`(r.agent_id = ${agentId} AND r.pool_id IS NULL)`;
 
   const relationFilter = relation
     ? sql`AND r.relation = ${relation}`
@@ -517,25 +617,15 @@ export async function searchEntities(
 ) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'knowledge');
   const embedding = await generateQueryEmbedding(query);
+  const agentCondition = buildEntityAccessCondition(agentId, readablePoolIds);
 
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(entities.agentId, agentId), inArray(entities.poolId, readablePoolIds))!
-    : eq(entities.agentId, agentId);
-
-  let vectorResults: { id: string; type: string; name: string; properties: unknown; poolId: string | null; archivedAt: Date | null; createdAt: Date; updatedAt: Date; score: number }[] = [];
+  let vectorResults: Array<PublicEntityRow & { score: number }> = [];
 
   if (embedding.length > 0) {
     const vectorStr = `[${embedding.join(',')}]`;
     vectorResults = await db
       .select({
-        id: entities.id,
-        type: entities.type,
-        name: entities.name,
-        properties: entities.properties,
-        poolId: entities.poolId,
-        archivedAt: entities.archivedAt,
-        createdAt: entities.createdAt,
-        updatedAt: entities.updatedAt,
+        ...PUBLIC_ENTITY_SELECT,
         score: sql<number>`1 - (${entities.embedding} <=> ${vectorStr})`,
       })
       .from(entities)
@@ -551,49 +641,65 @@ export async function searchEntities(
       .limit(limit);
   }
 
-  // Meilisearch text search — build filter to include pool data
-  let meiliFilter = `ownerId = "${ownerId}" AND agentId = "${agentId}"`;
-  if (readablePoolIds.length > 0) {
-    const poolFilter = readablePoolIds.map((id) => `poolId = "${id}"`).join(' OR ');
-    meiliFilter = `ownerId = "${ownerId}" AND (agentId = "${agentId}" OR ${poolFilter})`;
-  }
-
   const textResults = await searchIndex.searchDocuments(
     'entities',
     query,
-    meiliFilter,
+    buildEntitySearchFilter(ownerId, agentId, readablePoolIds),
     limit,
   );
 
-  const textHitIds = new Set((textResults.hits as Array<{ id: string }>).map((h) => h.id));
+  const textScores = new Map(
+    (textResults.hits as EntitySearchHit[]).map((hit) => [hit.id, getTextScore(hit)]),
+  );
   const merged = vectorResults
     .map((r) => ({
-      data: {
-        id: r.id,
-        type: r.type,
-        name: r.name,
-        properties: r.properties,
-        poolId: r.poolId,
-        poolName: null as string | null,
-        archivedAt: r.archivedAt,
-        createdAt: r.createdAt,
-        updatedAt: r.updatedAt,
-      },
-      score: textHitIds.has(r.id) ? Math.min(r.score + 0.05, 1) : r.score,
+      data: toSearchableEntity(r),
+      score: Math.max(r.score, textScores.get(r.id) ?? 0),
     }))
     .filter((r) => r.score >= minScore);
+
+  const mergedIds = new Set(merged.map((r) => r.data.id));
+  const textOnlyIds = (textResults.hits as EntitySearchHit[])
+    .map((hit) => hit.id)
+    .filter((id) => !mergedIds.has(id));
+
+  if (textOnlyIds.length > 0) {
+    const textRows = await db
+      .select(PUBLIC_ENTITY_SELECT)
+      .from(entities)
+      .where(
+        and(
+          eq(entities.ownerId, ownerId),
+          agentCondition,
+          isNull(entities.archivedAt),
+          inArray(entities.id, textOnlyIds),
+        ),
+      );
+
+    const textRowMap = new Map(textRows.map((row) => [row.id, row]));
+
+    for (const id of textOnlyIds) {
+      const row = textRowMap.get(id);
+      if (!row) continue;
+      const score = textScores.get(id) ?? 0.5;
+      if (score >= minScore) {
+        merged.push({ data: toSearchableEntity(row), score });
+      }
+    }
+  }
+
+  merged.sort((a, b) => b.score - a.score);
 
   // Annotate pool names
   const poolIds = [...new Set(merged.filter((r) => r.data.poolId).map((r) => r.data.poolId!))];
   if (poolIds.length > 0) {
-    const { resolvePoolNames } = await import('./poolAccess.js');
     const names = await resolvePoolNames(poolIds);
     for (const r of merged) {
       if (r.data.poolId) r.data.poolName = names.get(r.data.poolId) ?? null;
     }
   }
 
-  return merged;
+  return merged.slice(0, limit);
 }
 
 // ---------------------------------------------------------------------------

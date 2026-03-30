@@ -35,7 +35,7 @@ skillsRouter.post('/', requireScope('skills.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const skill = await registerSkill(auth.agentId, auth.ownerId, parsed.data);
+  const skill = await registerSkill(auth.agentId, auth.ownerId, parsed.data, auth.scopes);
   return c.json(skill, 201);
 });
 
@@ -108,7 +108,7 @@ skillsRouter.patch('/:id', requireScope('skills.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const updated = await updateSkill(id, auth.agentId, auth.ownerId, parsed.data);
+  const updated = await updateSkill(id, auth.agentId, auth.ownerId, parsed.data, auth.scopes);
 
   if (!updated) {
     return c.json({ error: 'Skill not found' }, 404);
@@ -124,7 +124,7 @@ skillsRouter.delete('/:id', requireScope('skills.write'), async (c) => {
   if (!id) {
     return c.json({ error: 'Missing skill id' }, 400);
   }
-  const deleted = await removeSkill(id, auth.agentId, auth.ownerId);
+  const deleted = await removeSkill(id, auth.agentId, auth.ownerId, auth.scopes);
 
   if (!deleted) {
     return c.json({ error: 'Skill not found' }, 404);
@@ -151,7 +151,7 @@ skillsRouter.post('/:id/usage', requireScope('skills.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const updated = await reportUsage(id, auth.agentId, auth.ownerId, parsed.data.success);
+  const updated = await reportUsage(id, auth.agentId, auth.ownerId, parsed.data.success, auth.scopes);
 
   if (!updated) {
     return c.json({ error: 'Skill not found' }, 404);

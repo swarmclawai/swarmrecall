@@ -4,7 +4,12 @@ import { agentSkills } from '../db/schema.js';
 import { generateEmbedding } from '../lib/embeddings.js';
 import { searchIndex } from './search.js';
 import { logAuditEvent } from './audit.js';
-import { getReadablePoolIds, validatePoolWrite, annotatePoolNames } from './poolAccess.js';
+import {
+  getReadablePoolIds,
+  validatePoolWrite,
+  annotatePoolNames,
+  validatePoolsWriteScope,
+} from './poolAccess.js';
 import { SIMILARITY_THRESHOLD } from '@swarmrecall/shared';
 import type { SkillRegister, SkillUpdate, SkillList } from '@swarmrecall/shared';
 
@@ -16,12 +21,37 @@ function vectorToSql(vec: number[]): string {
   return `[${vec.join(',')}]`;
 }
 
+function buildSkillAccessCondition(agentId: string, readablePoolIds: string[]) {
+  return readablePoolIds.length > 0
+    ? or(
+        and(eq(agentSkills.agentId, agentId), isNull(agentSkills.poolId)),
+        inArray(agentSkills.poolId, readablePoolIds),
+      )!
+    : and(eq(agentSkills.agentId, agentId), isNull(agentSkills.poolId))!;
+}
+
+function buildSkillSearchFilter(ownerId: string, agentId: string, readablePoolIds: string[]) {
+  const privateFilter = `(agentId = "${agentId}" AND poolId IS NULL)`;
+  if (readablePoolIds.length === 0) {
+    return `ownerId = "${ownerId}" AND ${privateFilter} AND status = "active"`;
+  }
+
+  const poolFilter = readablePoolIds.map((id) => `poolId = "${id}"`).join(' OR ');
+  return `ownerId = "${ownerId}" AND (${privateFilter} OR ${poolFilter}) AND status = "active"`;
+}
+
 // ---------------------------------------------------------------------------
 // registerSkill
 // ---------------------------------------------------------------------------
 
-export async function registerSkill(agentId: string, ownerId: string, data: SkillRegister) {
+export async function registerSkill(
+  agentId: string,
+  ownerId: string,
+  data: SkillRegister,
+  scopes?: string[],
+) {
   if (data.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, data.poolId, 'skills');
   }
 
@@ -72,10 +102,7 @@ export async function registerSkill(agentId: string, ownerId: string, data: Skil
 
 export async function listSkills(agentId: string, ownerId: string, filters: SkillList) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'skills');
-
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(agentSkills.agentId, agentId), inArray(agentSkills.poolId, readablePoolIds))!
-    : eq(agentSkills.agentId, agentId);
+  const agentCondition = buildSkillAccessCondition(agentId, readablePoolIds);
 
   const conditions: SQL[] = [
     eq(agentSkills.ownerId, ownerId),
@@ -124,11 +151,12 @@ export async function getSkill(id: string, agentId: string, ownerId: string) {
 
   if (!row) return null;
 
-  // Check access: own data or pool data the agent can read
-  if (row.agentId !== agentId) {
-    if (!row.poolId) return null;
+  // Check access: private data belongs to the agent; pool data requires membership.
+  if (row.poolId) {
     const readable = await getReadablePoolIds(agentId, ownerId, 'skills');
     if (!readable.includes(row.poolId)) return null;
+  } else if (row.agentId !== agentId) {
+    return null;
   }
 
   const [annotated] = await annotatePoolNames([row]);
@@ -144,11 +172,13 @@ export async function updateSkill(
   agentId: string,
   ownerId: string,
   data: SkillUpdate,
+  scopes?: string[],
 ) {
   // Load first to check pool write access
   const existing = await getSkill(id, agentId, ownerId);
   if (!existing) return null;
   if (existing.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, existing.poolId, 'skills');
   } else if (existing.agentId !== agentId) {
     return null;
@@ -180,20 +210,23 @@ export async function updateSkill(
       source: updated.source,
       status: updated.status,
     });
+    const [annotated] = await annotatePoolNames([updated]);
+    return annotated;
   }
 
-  return updated ?? null;
+  return null;
 }
 
 // ---------------------------------------------------------------------------
 // removeSkill
 // ---------------------------------------------------------------------------
 
-export async function removeSkill(id: string, agentId: string, ownerId: string) {
+export async function removeSkill(id: string, agentId: string, ownerId: string, scopes?: string[]) {
   // Load first to check pool write access
   const existing = await getSkill(id, agentId, ownerId);
   if (!existing) return null;
   if (existing.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, existing.poolId, 'skills');
   } else if (existing.agentId !== agentId) {
     return null;
@@ -236,13 +269,7 @@ export async function suggestSkills(
   limit: number = 5,
 ) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'skills');
-
-  // Build Meilisearch filter to include pool data
-  let meiliFilter = `ownerId = "${ownerId}" AND agentId = "${agentId}" AND status = "active"`;
-  if (readablePoolIds.length > 0) {
-    const poolFilter = readablePoolIds.map((id) => `poolId = "${id}"`).join(' OR ');
-    meiliFilter = `ownerId = "${ownerId}" AND (agentId = "${agentId}" OR ${poolFilter}) AND status = "active"`;
-  }
+  const meiliFilter = buildSkillSearchFilter(ownerId, agentId, readablePoolIds);
 
   // Generate embedding for the context
   const embedding = await generateEmbedding(context);
@@ -279,10 +306,7 @@ export async function suggestSkills(
 
 export async function detectConflicts(agentId: string, ownerId: string) {
   const readablePoolIds = await getReadablePoolIds(agentId, ownerId, 'skills');
-
-  const agentCondition = readablePoolIds.length > 0
-    ? or(eq(agentSkills.agentId, agentId), inArray(agentSkills.poolId, readablePoolIds))!
-    : eq(agentSkills.agentId, agentId);
+  const agentCondition = buildSkillAccessCondition(agentId, readablePoolIds);
 
   // Get all active skills for this agent (including pool skills)
   const skills = await db
@@ -361,11 +385,13 @@ export async function reportUsage(
   agentId: string,
   ownerId: string,
   success: boolean,
+  scopes?: string[],
 ) {
   // Load first to check pool write access
   const existing = await getSkill(id, agentId, ownerId);
   if (!existing) return null;
   if (existing.poolId) {
+    validatePoolsWriteScope(scopes);
     await validatePoolWrite(agentId, ownerId, existing.poolId, 'skills');
   } else if (existing.agentId !== agentId) {
     return null;

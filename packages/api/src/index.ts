@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { HTTPException } from 'hono/http-exception';
 import health from './routes/health.js';
 import memoryRouter from './routes/memory.js';
 import knowledgeRouter from './routes/knowledge.js';
@@ -62,6 +63,9 @@ export function createApp() {
 
   // Global error handler
   app.onError((err, c) => {
+    if (err instanceof HTTPException) {
+      return c.json({ error: err.message }, err.status);
+    }
     console.error('Unhandled error:', err);
     return c.json(
       { error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message },

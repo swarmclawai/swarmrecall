@@ -13,9 +13,13 @@ services:
       - key: NODE_ENV
         value: production
       - key: CORS_ORIGINS
-        value: https://swarmrecall.ai
+        value: https://swarmrecall.ai,https://swarmrecall-web-capital-inclubator-projects.vercel.app
       - key: MEILISEARCH_URL
         value: http://swarmrecall-search:7700
+      - key: MEILISEARCH_API_KEY
+        sync: false
+      - key: DASHBOARD_URL
+        value: https://swarmrecall-web-capital-inclubator-projects.vercel.app
       - key: UPSTASH_REDIS_REST_URL
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN
@@ -32,6 +36,9 @@ services:
     runtime: image
     image:
       url: docker.io/getmeili/meilisearch:v1.12
+    envVars:
+      - key: MEILI_MASTER_KEY
+        sync: false
     disk:
       name: meili-data
       mountPath: /meili_data

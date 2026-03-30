@@ -26,11 +26,12 @@ function saveConfig(config: Config) {
 function getClient(): SwarmRecallClient {
   const config = loadConfig();
   const apiKey = process.env.SWARMRECALL_API_KEY ?? config.apiKey;
+  const baseUrl = process.env.SWARMRECALL_API_URL ?? config.baseUrl;
   if (!apiKey) {
     console.error('No API key configured. Run: swarmrecall config set-key <key>');
     process.exit(1);
   }
-  return new SwarmRecallClient({ apiKey, baseUrl: config.baseUrl });
+  return new SwarmRecallClient({ apiKey, baseUrl });
 }
 
 function output(data: unknown) {
@@ -56,7 +57,7 @@ program
     try {
       const result = await SwarmRecallClient.register({
         name: opts.name,
-        baseUrl: cfg.baseUrl,
+        baseUrl: process.env.SWARMRECALL_API_URL ?? cfg.baseUrl,
       });
 
       console.log('Registration successful!\n');

@@ -64,7 +64,11 @@ export async function searchDocuments(
   limit = 20,
 ) {
   try {
-    return await meili.index(indexName).search(query, { filter, limit });
+    return await meili.index(indexName).search(query, {
+      filter,
+      limit,
+      showRankingScore: true,
+    });
   } catch {
     return { hits: [], estimatedTotalHits: 0 };
   }
