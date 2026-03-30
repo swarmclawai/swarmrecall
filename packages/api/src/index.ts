@@ -10,8 +10,11 @@ import skillsRouter from './routes/skills.js';
 import ownersRouter from './routes/owners.js';
 import agentsRouter from './routes/agents.js';
 import apikeysRouter from './routes/apikeys.js';
+import registerRouter from './routes/register.js';
+import claimRouter from './routes/claim.js';
 import { apiKeyAuth, firebaseAuth } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
+import { RATE_LIMIT_REGISTER } from '@swarmrecall/shared';
 import { ensureIndexes } from './services/search.js';
 import { connectRedis } from './lib/redis.js';
 import { initEmbeddings } from './lib/embeddings.js';
@@ -28,6 +31,12 @@ app.use(
 
 // Health (no auth)
 app.route('/api/v1/health', health);
+
+// Self-registration (no auth, rate limited by IP)
+app.route('/api/v1/register', (() => { const r = new Hono(); r.use('*', rateLimit(60_000, RATE_LIMIT_REGISTER)); r.route('/', registerRouter); return r; })());
+
+// Claim (Firebase auth + rate limiting)
+app.route('/api/v1/claim', (() => { const r = new Hono(); r.use('*', rateLimit()); r.use('*', firebaseAuth); r.route('/', claimRouter); return r; })());
 
 // Agent routes (API key auth + rate limiting)
 const agentApi = new Hono();

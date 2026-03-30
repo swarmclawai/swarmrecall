@@ -24,11 +24,12 @@ const vector = customType<{ data: number[]; driverParam: string }>({
 
 export const owners = pgTable('owners', {
   id: uuid('id').primaryKey().defaultRandom(),
-  firebaseUid: text('firebase_uid').notNull().unique(),
+  firebaseUid: text('firebase_uid').unique(),
   email: text('email'),
   displayName: text('display_name'),
   avatarUrl: text('avatar_url'),
   plan: text('plan').notNull().default('free'),
+  claimed: text('claimed').notNull().default('true'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -65,6 +66,24 @@ export const apiKeys = pgTable(
   (t) => [
     uniqueIndex('api_keys_hash_idx').on(t.keyHash),
     index('api_keys_owner_idx').on(t.ownerId),
+  ],
+);
+
+export const claimTokens = pgTable(
+  'claim_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    token: text('token').notNull().unique(),
+    ownerId: uuid('owner_id').notNull().references(() => owners.id),
+    agentId: uuid('agent_id').notNull().references(() => agents.id),
+    claimedBy: uuid('claimed_by').references(() => owners.id),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('claim_tokens_token_idx').on(t.token),
+    index('claim_tokens_owner_idx').on(t.ownerId),
   ],
 );
 

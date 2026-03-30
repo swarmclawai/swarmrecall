@@ -1,215 +1,418 @@
-'use client';
+import Link from 'next/link';
 
-import { useAuth } from '@/lib/auth-context';
-import { getAuth, googleProvider, githubProvider } from '@/lib/firebase';
-import {
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} from 'firebase/auth';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+const features = [
+  {
+    title: 'Memory',
+    description:
+      'Semantic vector search across everything your agent has ever stored. Full-text and embedding-based retrieval with automatic deduplication.',
+    icon: (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 6v6l4 2" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Knowledge',
+    description:
+      'Build a knowledge graph that connects entities, concepts, and relationships. Your agents understand context, not just keywords.',
+    icon: (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="5" cy="12" r="2" />
+        <circle cx="19" cy="6" r="2" />
+        <circle cx="19" cy="18" r="2" />
+        <path d="M7 11.5L17 6.5" />
+        <path d="M7 12.5L17 17.5" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Learnings',
+    description:
+      'Pattern extraction from agent interactions. Auto-distill repeated successes and failures into reusable insights.',
+    icon: (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Skills',
+    description:
+      'A registry of agent capabilities. Track what your agents can do, version their skills, and share across your swarm.',
+    icon: (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+      </svg>
+    ),
+  },
+];
 
-export default function LandingPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [error, setError] = useState('');
-  const [emailLoading, setEmailLoading] = useState(false);
+const steps = [
+  {
+    num: '01',
+    title: 'Install the skill',
+    description:
+      'Add the SwarmRecall skill to your agent from ClawHub. One click, zero configuration.',
+  },
+  {
+    num: '02',
+    title: 'Agent auto-registers',
+    description:
+      'On first use, your agent registers itself with SwarmRecall and receives a unique identity.',
+  },
+  {
+    num: '03',
+    title: 'Claim your dashboard',
+    description:
+      'Your agent gives you a claim code. Enter it at swarmrecall.ai/claim to link your dashboard.',
+  },
+];
 
-  useEffect(() => {
-    if (!loading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, loading, router]);
+const skills = [
+  'swarmrecall-memory',
+  'swarmrecall-knowledge',
+  'swarmrecall-learnings',
+  'swarmrecall-skills',
+  'swarmrecall-agent',
+  'swarmrecall-full',
+];
 
-  const handleGoogleLogin = async () => {
-    try {
-      setError('');
-      await signInWithPopup(getAuth()!, googleProvider);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Google sign-in failed');
-    }
-  };
-
-  const handleGitHubLogin = async () => {
-    try {
-      setError('');
-      await signInWithPopup(getAuth()!, githubProvider);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'GitHub sign-in failed');
-    }
-  };
-
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setEmailLoading(true);
-    try {
-      if (isSignUp) {
-        await createUserWithEmailAndPassword(getAuth()!, email, password);
-      } else {
-        await signInWithEmailAndPassword(getAuth()!, email, password);
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Authentication failed');
-    } finally {
-      setEmailLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-      </div>
-    );
-  }
-
-  if (user) return null;
-
+export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-8">
-        {/* Hero */}
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-            SwarmRecall
+    <div className="min-h-screen bg-[#08080d] text-[#e2e2ec] font-sans overflow-x-hidden">
+      {/* Grid pattern overlay */}
+      <div
+        className="fixed inset-0 pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+          backgroundSize: '64px 64px',
+        }}
+      />
+
+      {/* Nav */}
+      <nav className="relative z-10 border-b border-white/[0.05]">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-lg bg-[#6366F1]/20 flex items-center justify-center">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#818CF8"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+            </div>
+            <span className="font-display font-bold text-lg tracking-tight text-white">
+              SwarmRecall
+            </span>
+          </Link>
+          <div className="hidden md:flex items-center gap-8">
+            <Link
+              href="#features"
+              className="text-sm text-[#7a7a96] hover:text-[#e2e2ec] transition-colors"
+            >
+              Features
+            </Link>
+            <Link
+              href="/docs"
+              className="text-sm text-[#7a7a96] hover:text-[#e2e2ec] transition-colors"
+            >
+              Docs
+            </Link>
+            <a
+              href="https://clawhub.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[#7a7a96] hover:text-[#e2e2ec] transition-colors"
+            >
+              ClawHub
+            </a>
+            <Link
+              href="/login"
+              className="text-sm font-medium text-[#08080d] bg-[#6366F1] hover:bg-[#818CF8] px-4 py-2 rounded-lg transition-colors"
+            >
+              Sign In
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="relative z-10 pt-28 pb-32">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.12)_0%,transparent_70%)] pointer-events-none" />
+
+        <div className="max-w-6xl mx-auto px-6 text-center relative">
+          <div className="inline-flex items-center gap-2 mb-6 border border-white/[0.07] bg-[#13131e]/80 text-[#818CF8] backdrop-blur-sm px-3 py-1 rounded-full text-sm">
+            Now available on ClawHub
+          </div>
+
+          <h1 className="font-display font-extrabold text-4xl sm:text-6xl lg:text-7xl tracking-tight leading-[1.08] mb-6 max-w-4xl mx-auto">
+            Your agents{' '}
+            <span className="gradient-text">remember everything.</span>
           </h1>
-          <p className="text-lg text-gray-600">
-            Memory, knowledge, learnings, and skills as a service for AI agents
+
+          <p className="text-lg sm:text-xl text-[#7a7a96] max-w-2xl mx-auto mb-10 leading-relaxed">
+            Memory, knowledge, learnings, and skills as a service for AI agents.
+            Give your swarm persistent context that survives across sessions,
+            providers, and platforms.
           </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="https://clawhub.ai/skills/swarmrecall"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-12 px-8 text-base font-semibold rounded-xl bg-[#6366F1] hover:bg-[#818CF8] transition-all shadow-[0_0_30px_rgba(99,102,241,0.25)] hover:shadow-[0_0_40px_rgba(99,102,241,0.35)] flex items-center justify-center text-white"
+            >
+              Install from ClawHub
+            </a>
+            <Link
+              href="/docs"
+              className="h-12 px-8 text-base font-semibold rounded-xl border border-white/[0.1] bg-transparent hover:bg-white/[0.04] text-[#e2e2ec] transition-colors flex items-center justify-center"
+            >
+              Read Docs
+            </Link>
+          </div>
         </div>
+      </section>
 
-        {/* Login card */}
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm space-y-6">
-          {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          {/* OAuth buttons */}
-          <div className="space-y-3">
-            <button
-              onClick={handleGoogleLogin}
-              className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Continue with Google
-            </button>
-
-            <button
-              onClick={handleGitHubLogin}
-              className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  fillRule="evenodd"
-                  d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Continue with GitHub
-            </button>
+      {/* How it works */}
+      <section className="relative z-10 py-28 border-y border-white/[0.04]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="font-display font-bold text-3xl sm:text-4xl tracking-tight text-white mb-4">
+              Up and running in three steps
+            </h2>
+            <p className="text-[#7a7a96] text-lg max-w-xl mx-auto">
+              No API keys to configure upfront. Your agent handles registration
+              automatically.
+            </p>
           </div>
 
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-3 text-gray-500">or</span>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {steps.map((step) => (
+              <div key={step.num} className="relative">
+                <div className="glass-card rounded-2xl p-8 h-full">
+                  <div className="font-mono text-5xl font-bold text-[#6366F1]/20 mb-4">
+                    {step.num}
+                  </div>
+                  <h3 className="font-display font-semibold text-white text-lg mb-2">
+                    {step.title}
+                  </h3>
+                  <p className="text-[#7a7a96] text-sm leading-relaxed">
+                    {step.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features grid */}
+      <section id="features" className="relative z-10 py-28">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="font-display font-bold text-3xl sm:text-4xl tracking-tight text-white mb-4">
+              Four pillars of agent intelligence
+            </h2>
+            <p className="text-[#7a7a96] text-lg max-w-xl mx-auto">
+              Everything your agents need to build long-term understanding.
+            </p>
           </div>
 
-          {/* Email/password form */}
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {features.map((feature) => (
+              <div
+                key={feature.title}
+                className="glass-card rounded-2xl p-6 hover:border-white/[0.1] transition-all duration-300 group"
               >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none"
-                placeholder="you@example.com"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none"
-                placeholder="Enter your password"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={emailLoading}
-              className="w-full rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer"
-            >
-              {emailLoading
-                ? 'Loading...'
-                : isSignUp
-                  ? 'Create Account'
-                  : 'Sign In'}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-gray-500">
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <button
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError('');
-              }}
-              className="font-medium text-gray-900 hover:underline cursor-pointer"
-            >
-              {isSignUp ? 'Sign in' : 'Sign up'}
-            </button>
-          </p>
+                <div className="w-10 h-10 rounded-xl bg-[#6366F1]/10 flex items-center justify-center text-[#818CF8] mb-4 group-hover:bg-[#6366F1]/15 transition-colors">
+                  {feature.icon}
+                </div>
+                <h3 className="font-display font-semibold text-white text-lg mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-[#7a7a96] text-sm leading-relaxed">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
+      </section>
 
-        <p className="text-center text-xs text-gray-400">
-          swarmrecall.ai
-        </p>
-      </div>
-    </main>
+      {/* Code example */}
+      <section className="relative z-10 py-28 border-y border-white/[0.04]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="font-display font-bold text-3xl sm:text-4xl tracking-tight text-white mb-4">
+              Simple SDK, powerful results
+            </h2>
+            <p className="text-[#7a7a96] text-lg max-w-xl mx-auto">
+              A few lines of code give your agent permanent memory.
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto">
+            <div className="glass-card rounded-2xl overflow-hidden glow-indigo-sm">
+              <div className="px-4 py-2.5 border-b border-white/[0.05] flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#F43F5E]/60" />
+                <div className="w-2 h-2 rounded-full bg-[#FBBF24]/60" />
+                <div className="w-2 h-2 rounded-full bg-[#34D399]/60" />
+                <span className="ml-2 text-[10px] text-[#42425c] font-mono">
+                  agent.ts
+                </span>
+              </div>
+              <pre className="p-6 text-sm leading-relaxed font-mono overflow-x-auto">
+                <code>
+                  <span className="text-[#7a7a96]">
+                    {`import { SwarmRecall } from '@swarmrecall/sdk';\n\n`}
+                  </span>
+                  <span className="text-[#818CF8]">const</span>
+                  {` recall = `}
+                  <span className="text-[#818CF8]">new</span>
+                  {` SwarmRecall({\n  apiKey: process.env.`}
+                  <span className="text-[#34D399]">SWARMRECALL_API_KEY</span>
+                  {`,\n});\n\n`}
+                  <span className="text-[#42425c]">
+                    {`// Store a memory\n`}
+                  </span>
+                  <span className="text-[#818CF8]">await</span>
+                  {` recall.memory.`}
+                  <span className="text-[#34D399]">store</span>
+                  {`({\n  content: `}
+                  <span className="text-[#FBBF24]">{`"User prefers dark mode"`}</span>
+                  {`,\n  tags: [`}
+                  <span className="text-[#FBBF24]">{`"preference"`}</span>
+                  {`, `}
+                  <span className="text-[#FBBF24]">{`"ui"`}</span>
+                  {`],\n});\n\n`}
+                  <span className="text-[#42425c]">
+                    {`// Search memories semantically\n`}
+                  </span>
+                  <span className="text-[#818CF8]">const</span>
+                  {` results = `}
+                  <span className="text-[#818CF8]">await</span>
+                  {` recall.memory.`}
+                  <span className="text-[#34D399]">search</span>
+                  {`(`}
+                  <span className="text-[#FBBF24]">{`"user preferences"`}</span>
+                  {`);`}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Social proof */}
+      <section className="relative z-10 py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <p className="text-center text-xs font-medium tracking-widest uppercase text-[#42425c] mb-4">
+            Available on ClawHub
+          </p>
+          <p className="text-center text-2xl sm:text-3xl font-display font-bold text-white mb-10">
+            Replacing{' '}
+            <span className="gradient-text">500k+ ClawHub skill downloads</span>
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
+            {skills.map((skill) => (
+              <div
+                key={skill}
+                className="flex items-center gap-2.5 text-[#7a7a96]/60 hover:text-[#7a7a96] transition-colors"
+              >
+                <div className="w-2 h-2 rounded-full bg-[#6366F1]/30" />
+                <span className="text-sm font-mono tracking-wide">{skill}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-white/[0.05] py-12">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-6 text-sm text-[#42425c]">
+              <Link
+                href="/docs"
+                className="text-[#7a7a96] hover:text-[#e2e2ec] transition-colors"
+              >
+                Docs
+              </Link>
+              <a
+                href="https://clawhub.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#7a7a96] hover:text-[#e2e2ec] transition-colors"
+              >
+                ClawHub
+              </a>
+              <a
+                href="https://github.com/swarmrecall"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#7a7a96] hover:text-[#e2e2ec] transition-colors"
+              >
+                GitHub
+              </a>
+              <Link
+                href="/pricing"
+                className="text-[#7a7a96] hover:text-[#e2e2ec] transition-colors"
+              >
+                Pricing
+              </Link>
+            </div>
+            <span className="text-xs text-[#42425c]">swarmrecall.ai</span>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

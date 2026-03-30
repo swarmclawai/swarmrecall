@@ -44,6 +44,41 @@ program
   .description('SwarmRecall CLI — manage agent memory, knowledge, learnings, and skills')
   .version('0.1.0');
 
+// --- Register ---
+
+program
+  .command('register')
+  .description('Register a new agent and get an API key (no account needed)')
+  .option('-n, --name <name>', 'Agent display name')
+  .option('--save', 'Save the API key to local config')
+  .action(async (opts) => {
+    const cfg = loadConfig();
+    try {
+      const result = await SwarmRecallClient.register({
+        name: opts.name,
+        baseUrl: cfg.baseUrl,
+      });
+
+      console.log('Registration successful!\n');
+      console.log(`API Key:     ${result.apiKey}`);
+      console.log(`Claim Token: ${result.claimToken}`);
+      console.log(`\nTo manage your agent's data, visit: swarmrecall.ai/claim`);
+      console.log(`Use code: ${result.claimToken}`);
+
+      if (opts.save) {
+        cfg.apiKey = result.apiKey;
+        saveConfig(cfg);
+        console.log('\nAPI key saved to config.');
+      } else {
+        console.log('\nTo save this key, run again with --save or run:');
+        console.log(`  swarmrecall config set-key ${result.apiKey}`);
+      }
+    } catch (err) {
+      console.error(`Registration failed: ${(err as Error).message}`);
+      process.exit(1);
+    }
+  });
+
 // --- Config ---
 
 const config = program.command('config');

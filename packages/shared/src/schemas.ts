@@ -176,6 +176,16 @@ export const AgentUpdateSchema = z.object({
   description: z.string().max(2000).optional(),
 });
 
+// --- Registration ---
+
+export const RegisterSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+});
+
+export const ClaimSchema = z.object({
+  claimToken: z.string().min(1).max(20),
+});
+
 // --- Inferred types ---
 
 export type MemoryCreate = z.infer<typeof MemoryCreateSchema>;
@@ -197,3 +207,5 @@ export type SkillList = z.infer<typeof SkillListSchema>;
 export type ApiKeyCreate = z.infer<typeof ApiKeyCreateSchema>;
 export type AgentCreate = z.infer<typeof AgentCreateSchema>;
 export type AgentUpdate = z.infer<typeof AgentUpdateSchema>;
+export type Register = z.infer<typeof RegisterSchema>;
+export type Claim = z.infer<typeof ClaimSchema>;
