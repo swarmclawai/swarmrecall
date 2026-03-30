@@ -16,11 +16,12 @@ import {
   detectConflicts,
   reportUsage,
 } from '../services/skills.js';
+import { requireScope } from '../middleware/auth.js';
 
 const skillsRouter = new Hono();
 
 // POST / — Register a new skill
-skillsRouter.post('/', async (c) => {
+skillsRouter.post('/', requireScope('skills.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const body = await c.req.json();
   const parsed = SkillRegisterSchema.safeParse(body);
@@ -34,7 +35,7 @@ skillsRouter.post('/', async (c) => {
 });
 
 // GET / — List skills (paginated)
-skillsRouter.get('/', async (c) => {
+skillsRouter.get('/', requireScope('skills.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const query = c.req.query();
   const parsed = SkillListSchema.safeParse(query);
@@ -48,7 +49,7 @@ skillsRouter.get('/', async (c) => {
 });
 
 // GET /suggest — Suggest skills based on context
-skillsRouter.get('/suggest', async (c) => {
+skillsRouter.get('/suggest', requireScope('skills.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const context = c.req.query('context');
 
@@ -62,16 +63,19 @@ skillsRouter.get('/suggest', async (c) => {
 });
 
 // GET /conflicts — Detect dependency conflicts
-skillsRouter.get('/conflicts', async (c) => {
+skillsRouter.get('/conflicts', requireScope('skills.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const conflicts = await detectConflicts(auth.agentId, auth.ownerId);
   return c.json({ data: conflicts });
 });
 
 // GET /:id — Get skill details
-skillsRouter.get('/:id', async (c) => {
+skillsRouter.get('/:id', requireScope('skills.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing skill id' }, 400);
+  }
   const skill = await getSkill(id, auth.agentId, auth.ownerId);
 
   if (!skill) {
@@ -82,9 +86,12 @@ skillsRouter.get('/:id', async (c) => {
 });
 
 // PATCH /:id — Update skill
-skillsRouter.patch('/:id', async (c) => {
+skillsRouter.patch('/:id', requireScope('skills.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing skill id' }, 400);
+  }
   const body = await c.req.json();
   const parsed = SkillUpdateSchema.safeParse(body);
 
@@ -102,9 +109,12 @@ skillsRouter.patch('/:id', async (c) => {
 });
 
 // DELETE /:id — Unregister (hard delete)
-skillsRouter.delete('/:id', async (c) => {
+skillsRouter.delete('/:id', requireScope('skills.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing skill id' }, 400);
+  }
   const deleted = await removeSkill(id, auth.agentId, auth.ownerId);
 
   if (!deleted) {
@@ -115,9 +125,12 @@ skillsRouter.delete('/:id', async (c) => {
 });
 
 // POST /:id/usage — Report usage
-skillsRouter.post('/:id/usage', async (c) => {
+skillsRouter.post('/:id/usage', requireScope('skills.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing skill id' }, 400);
+  }
   const body = await c.req.json();
   const parsed = SkillUsageSchema.safeParse(body);
 

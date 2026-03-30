@@ -1,11 +1,12 @@
 import { randomBytes } from 'node:crypto';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
   owners, agents, apiKeys, claimTokens,
   memories, memorySessions, entities, relations, entityTypes,
   learnings, learningPatterns, agentSkills, skillOverrides,
 } from '../db/schema.js';
+import { redisDel } from '../lib/redis.js';
 import { createApiKey } from './apikeys.js';
 import { logAuditEvent } from './audit.js';
 import {
@@ -140,39 +141,96 @@ export async function claimAgent(claimToken: string, firebaseOwnerId: string) {
     newOwnerId = newOwner.id;
   }
 
-  // 5. Transfer all data to new owner
   const now = new Date();
+  const { agentName, transferredKeyHashes } = await db.transaction(async (tx) => {
+    const [updatedAgent] = await tx
+      .update(agents)
+      .set({ ownerId: newOwnerId, updatedAt: now })
+      .where(and(eq(agents.id, agentId), eq(agents.ownerId, oldOwnerId)))
+      .returning({ name: agents.name });
 
-  await db.update(agents).set({ ownerId: newOwnerId, updatedAt: now }).where(eq(agents.id, agentId));
-  await db.update(apiKeys).set({ ownerId: newOwnerId }).where(and(eq(apiKeys.ownerId, oldOwnerId), eq(apiKeys.agentId, agentId)));
-  await db.update(memories).set({ ownerId: newOwnerId, updatedAt: now }).where(eq(memories.ownerId, oldOwnerId));
-  await db.update(memorySessions).set({ ownerId: newOwnerId }).where(eq(memorySessions.ownerId, oldOwnerId));
-  await db.update(entities).set({ ownerId: newOwnerId, updatedAt: now }).where(eq(entities.ownerId, oldOwnerId));
-  await db.update(relations).set({ ownerId: newOwnerId }).where(eq(relations.ownerId, oldOwnerId));
-  await db.update(entityTypes).set({ ownerId: newOwnerId, updatedAt: now }).where(eq(entityTypes.ownerId, oldOwnerId));
-  await db.update(learnings).set({ ownerId: newOwnerId, updatedAt: now }).where(eq(learnings.ownerId, oldOwnerId));
-  await db.update(learningPatterns).set({ ownerId: newOwnerId }).where(eq(learningPatterns.ownerId, oldOwnerId));
-  await db.update(agentSkills).set({ ownerId: newOwnerId, updatedAt: now }).where(eq(agentSkills.ownerId, oldOwnerId));
-  await db.update(skillOverrides).set({ agentId }).where(eq(skillOverrides.agentId, agentId));
+    if (!updatedAgent) {
+      throw new ClaimError('Agent not found', 404);
+    }
 
-  // 6. Mark claim token as claimed
-  await db.update(claimTokens).set({
-    claimedBy: newOwnerId,
-    claimedAt: now,
-  }).where(eq(claimTokens.id, tokenRecord.id));
+    const transferredKeys = await tx
+      .update(apiKeys)
+      .set({ ownerId: newOwnerId })
+      .where(and(eq(apiKeys.ownerId, oldOwnerId), eq(apiKeys.agentId, agentId)))
+      .returning({ keyHash: apiKeys.keyHash });
 
-  // 7. Mark old unclaimed owner as merged
-  await db.update(owners).set({
-    claimed: 'merged',
-    updatedAt: now,
-  }).where(eq(owners.id, oldOwnerId));
+    await tx
+      .update(memories)
+      .set({ ownerId: newOwnerId, updatedAt: now })
+      .where(and(eq(memories.ownerId, oldOwnerId), eq(memories.agentId, agentId)));
 
-  // Get agent name for the response
-  const [agent] = await db
-    .select({ name: agents.name })
-    .from(agents)
-    .where(eq(agents.id, agentId))
-    .limit(1);
+    await tx
+      .update(memorySessions)
+      .set({ ownerId: newOwnerId })
+      .where(and(eq(memorySessions.ownerId, oldOwnerId), eq(memorySessions.agentId, agentId)));
+
+    await tx
+      .update(entities)
+      .set({ ownerId: newOwnerId, updatedAt: now })
+      .where(and(eq(entities.ownerId, oldOwnerId), eq(entities.agentId, agentId)));
+
+    await tx
+      .update(relations)
+      .set({ ownerId: newOwnerId })
+      .where(and(eq(relations.ownerId, oldOwnerId), eq(relations.agentId, agentId)));
+
+    await tx
+      .update(learnings)
+      .set({ ownerId: newOwnerId, updatedAt: now })
+      .where(and(eq(learnings.ownerId, oldOwnerId), eq(learnings.agentId, agentId)));
+
+    await tx
+      .update(learningPatterns)
+      .set({ ownerId: newOwnerId })
+      .where(and(eq(learningPatterns.ownerId, oldOwnerId), eq(learningPatterns.agentId, agentId)));
+
+    await tx
+      .update(agentSkills)
+      .set({ ownerId: newOwnerId, updatedAt: now })
+      .where(and(eq(agentSkills.ownerId, oldOwnerId), eq(agentSkills.agentId, agentId)));
+
+    await tx
+      .update(claimTokens)
+      .set({
+        claimedBy: newOwnerId,
+        claimedAt: now,
+      })
+      .where(eq(claimTokens.id, tokenRecord.id));
+
+    const [{ count: remainingAgents }] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(agents)
+      .where(eq(agents.ownerId, oldOwnerId));
+
+    if (remainingAgents === 0) {
+      await tx
+        .update(entityTypes)
+        .set({ ownerId: newOwnerId, updatedAt: now })
+        .where(eq(entityTypes.ownerId, oldOwnerId));
+
+      await tx
+        .update(owners)
+        .set({
+          claimed: 'merged',
+          updatedAt: now,
+        })
+        .where(eq(owners.id, oldOwnerId));
+    }
+
+    return {
+      agentName: updatedAgent.name,
+      transferredKeyHashes: transferredKeys.map((key) => key.keyHash),
+    };
+  });
+
+  for (const keyHash of transferredKeyHashes) {
+    redisDel(`apikey:${keyHash}`);
+  }
 
   // Audit
   await logAuditEvent({
@@ -187,7 +245,7 @@ export async function claimAgent(claimToken: string, firebaseOwnerId: string) {
   return {
     ownerId: newOwnerId,
     agentId,
-    agentName: agent?.name ?? 'unknown',
+    agentName,
   };
 }
 

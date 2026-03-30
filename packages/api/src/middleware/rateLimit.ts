@@ -1,9 +1,17 @@
 import type { Context, Next } from 'hono';
-import { redis } from '../lib/redis.js';
+import { redisIncr, redisPexpire } from '../lib/redis.js';
 import { RATE_LIMIT_DEFAULT, RATE_LIMIT_SEARCH } from '@swarmrecall/shared';
 
 // In-memory fallback when Redis is unavailable
 const inMemory = new Map<string, { count: number; resetAt: number }>();
+
+// Periodically clean up expired entries to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of inMemory) {
+    if (entry.resetAt < now) inMemory.delete(key);
+  }
+}, 60_000).unref();
 
 export function rateLimit(windowMs = 60_000, maxRequests?: number) {
   return async (c: Context, next: Next) => {
@@ -12,10 +20,11 @@ export function rateLimit(windowMs = 60_000, maxRequests?: number) {
     const identifier = auth?.keyId ?? auth?.ownerId ?? c.req.header('x-forwarded-for') ?? 'anon';
     const key = `rl:${identifier}`;
 
-    try {
-      const current = await redis.incr(key);
+    const current = await redisIncr(key);
+
+    if (current !== null) {
       if (current === 1) {
-        await redis.pexpire(key, windowMs);
+        redisPexpire(key, windowMs);
       }
 
       c.header('X-RateLimit-Limit', String(limit));
@@ -24,7 +33,7 @@ export function rateLimit(windowMs = 60_000, maxRequests?: number) {
       if (current > limit) {
         return c.json({ error: 'Rate limit exceeded' }, 429);
       }
-    } catch {
+    } else {
       // Fallback to in-memory
       const now = Date.now();
       const entry = inMemory.get(key);

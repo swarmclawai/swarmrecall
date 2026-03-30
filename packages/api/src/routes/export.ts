@@ -3,12 +3,25 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { memories, memorySessions, entities, relations, learnings, agentSkills } from '../db/schema.js';
 import type { AgentAuthPayload } from '../middleware/auth.js';
+import { getUnauthorizedExportModules, parseExportModules } from '../services/export.js';
 
 const exportRouter = new Hono();
 
 exportRouter.get('/', async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
-  const modules = c.req.query('modules')?.split(',') ?? ['memory', 'knowledge', 'learnings', 'skills'];
+  const modules = parseExportModules(c.req.query('modules'));
+
+  if (!modules) {
+    return c.json({ error: 'Invalid export module requested' }, 400);
+  }
+
+  const unauthorizedModules = getUnauthorizedExportModules(auth.scopes, modules);
+  if (unauthorizedModules.length > 0) {
+    return c.json(
+      { error: `Missing required read scope(s) for module(s): ${unauthorizedModules.join(', ')}` },
+      403,
+    );
+  }
 
   const result: Record<string, unknown> = {
     exportedAt: new Date().toISOString(),

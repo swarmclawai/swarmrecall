@@ -1,7 +1,7 @@
 import { eq, and, isNull, desc, asc, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { memories, memorySessions } from '../db/schema.js';
-import { generateEmbedding } from '../lib/embeddings.js';
+import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
 import { indexDocument, searchDocuments } from './search.js';
 import { logAuditEvent } from './audit.js';
 import type { MemoryCreate, MemoryUpdate, MemoryList, SessionCreate, SessionUpdate } from '@swarmrecall/shared';
@@ -91,7 +91,7 @@ export async function searchMemories(
   limit: number,
   minScore: number,
 ) {
-  const embedding = await generateEmbedding(query);
+  const embedding = await generateQueryEmbedding(query);
 
   // Vector search
   let vectorResults: { id: string; content: string; category: string; importance: number | null; tags: string[] | null; metadata: unknown; sessionId: string | null; archivedAt: Date | null; createdAt: Date; updatedAt: Date; score: number }[] = [];

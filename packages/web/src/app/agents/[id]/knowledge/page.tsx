@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { apiFetch } from '@/lib/api';
+import { ENTITY_TYPES } from '@swarmrecall/shared';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
@@ -16,15 +17,13 @@ interface Entity {
 
 interface Relation {
   id: string;
-  sourceId: string;
-  sourceName: string;
-  targetId: string;
-  targetName: string;
-  type: string;
+  fromEntityId: string;
+  toEntityId: string;
+  relation: string;
   createdAt: string;
 }
 
-const entityTypes = ['all', 'person', 'organization', 'concept', 'tool', 'location', 'event'];
+const entityTypes = ['all', ...ENTITY_TYPES];
 
 export default function KnowledgePage() {
   const params = useParams();
@@ -49,21 +48,21 @@ export default function KnowledgePage() {
       const qs = queryParams.toString();
 
       const [entityData, relationData] = await Promise.allSettled([
-        apiFetch<{ entities: Entity[] }>(
+        apiFetch<{ data: Entity[] }>(
           `/agents/${agentId}/knowledge/entities${qs ? `?${qs}` : ''}`,
           token,
         ),
-        apiFetch<{ relations: Relation[] }>(
+        apiFetch<{ data: Relation[] }>(
           `/agents/${agentId}/knowledge/relations`,
           token,
         ),
       ]);
 
       if (entityData.status === 'fulfilled') {
-        setEntities(entityData.value.entities ?? []);
+        setEntities(entityData.value.data ?? []);
       }
       if (relationData.status === 'fulfilled') {
-        setRelations(relationData.value.relations ?? []);
+        setRelations(relationData.value.data ?? []);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load knowledge');
@@ -80,6 +79,8 @@ export default function KnowledgePage() {
     e.preventDefault();
     loadData();
   };
+
+  const entityNames = new Map(entities.map((entity) => [entity.id, entity.name]));
 
   return (
     <>
@@ -224,13 +225,13 @@ export default function KnowledgePage() {
                   >
                     <div className="flex items-center gap-3 text-sm">
                       <span className="font-medium text-gray-900">
-                        {relation.sourceName}
+                        {entityNames.get(relation.fromEntityId) ?? relation.fromEntityId.slice(0, 8)}
                       </span>
                       <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        {relation.type}
+                        {relation.relation}
                       </span>
                       <span className="font-medium text-gray-900">
-                        {relation.targetName}
+                        {entityNames.get(relation.toEntityId) ?? relation.toEntityId.slice(0, 8)}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-gray-400">

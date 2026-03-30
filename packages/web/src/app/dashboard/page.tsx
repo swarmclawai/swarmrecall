@@ -34,12 +34,12 @@ export default function DashboardPage() {
       try {
         const token = await getToken();
         const [agentsData, statsData] = await Promise.allSettled([
-          apiFetch<{ agents: Agent[] }>('/agents', token),
+          apiFetch<{ data: Agent[] }>('/agents', token),
           apiFetch<Stats>('/stats', token),
         ]);
 
         if (agentsData.status === 'fulfilled') {
-          setAgents(agentsData.value.agents ?? []);
+          setAgents(agentsData.value.data ?? []);
         }
         if (statsData.status === 'fulfilled') {
           setStats(statsData.value);

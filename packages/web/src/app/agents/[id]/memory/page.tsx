@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { apiFetch } from '@/lib/api';
+import { MEMORY_CATEGORIES } from '@swarmrecall/shared';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
@@ -20,10 +21,11 @@ interface Session {
   id: string;
   startedAt: string;
   endedAt?: string;
-  memoryCount: number;
+  summary?: string | null;
+  currentState?: Record<string, unknown> | null;
 }
 
-const categories = ['all', 'episodic', 'semantic', 'procedural', 'working'];
+const categories = ['all', ...MEMORY_CATEGORIES];
 
 export default function MemoryPage() {
   const params = useParams();
@@ -48,21 +50,21 @@ export default function MemoryPage() {
       const qs = queryParams.toString();
 
       const [memData, sessionData] = await Promise.allSettled([
-        apiFetch<{ memories: Memory[] }>(
+        apiFetch<{ data: Memory[] }>(
           `/agents/${agentId}/memory${qs ? `?${qs}` : ''}`,
           token,
         ),
-        apiFetch<{ sessions: Session[] }>(
+        apiFetch<{ data: Session[] }>(
           `/agents/${agentId}/memory/sessions`,
           token,
         ),
       ]);
 
       if (memData.status === 'fulfilled') {
-        setMemories(memData.value.memories ?? []);
+        setMemories(memData.value.data ?? []);
       }
       if (sessionData.status === 'fulfilled') {
-        setSessions(sessionData.value.sessions ?? []);
+        setSessions(sessionData.value.data ?? []);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load memories');
@@ -238,9 +240,14 @@ export default function MemoryPage() {
                         {session.endedAt &&
                           ` - Ended ${new Date(session.endedAt).toLocaleString()}`}
                       </p>
+                      {session.summary && (
+                        <p className="mt-1 text-sm text-gray-500">
+                          {session.summary}
+                        </p>
+                      )}
                     </div>
                     <span className="text-sm text-gray-600">
-                      {session.memoryCount} memories
+                      {session.endedAt ? 'Closed' : 'Active'}
                     </span>
                   </div>
                 ))}

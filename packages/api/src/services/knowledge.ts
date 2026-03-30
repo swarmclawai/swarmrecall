@@ -1,7 +1,7 @@
 import { eq, and, or, isNull, desc, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { entities, relations, entityTypes } from '../db/schema.js';
-import { generateEmbedding } from '../lib/embeddings.js';
+import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
 import { indexDocument, searchDocuments } from './search.js';
 import { logAuditEvent } from './audit.js';
 import type { EntityCreate, EntityUpdate, EntityList, RelationCreate } from '@swarmrecall/shared';
@@ -392,7 +392,7 @@ export async function searchEntities(
   limit: number,
   minScore: number,
 ) {
-  const embedding = await generateEmbedding(query);
+  const embedding = await generateQueryEmbedding(query);
 
   let vectorResults: { id: string; type: string; name: string; properties: unknown; archivedAt: Date | null; createdAt: Date; updatedAt: Date; score: number }[] = [];
 

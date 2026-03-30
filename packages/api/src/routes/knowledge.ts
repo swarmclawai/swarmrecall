@@ -25,6 +25,7 @@ import {
   createEntityType,
   listEntityTypes,
 } from '../services/knowledge.js';
+import { requireScope } from '../middleware/auth.js';
 
 const knowledge = new Hono();
 
@@ -33,7 +34,7 @@ const knowledge = new Hono();
 // ---------------------------------------------------------------------------
 
 // POST /entities — Create entity
-knowledge.post('/entities', async (c) => {
+knowledge.post('/entities', requireScope('knowledge.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const body = await c.req.json();
   const parsed = EntityCreateSchema.safeParse(body);
@@ -47,7 +48,7 @@ knowledge.post('/entities', async (c) => {
 });
 
 // GET /entities — List entities (paginated, filterable)
-knowledge.get('/entities', async (c) => {
+knowledge.get('/entities', requireScope('knowledge.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const parsed = EntityListSchema.safeParse(c.req.query());
 
@@ -60,9 +61,12 @@ knowledge.get('/entities', async (c) => {
 });
 
 // GET /entities/:id — Get entity with its relations
-knowledge.get('/entities/:id', async (c) => {
+knowledge.get('/entities/:id', requireScope('knowledge.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing entity id' }, 400);
+  }
 
   const result = await getEntity(id, auth.agentId, auth.ownerId);
   if (!result) {
@@ -73,9 +77,12 @@ knowledge.get('/entities/:id', async (c) => {
 });
 
 // PATCH /entities/:id — Update entity
-knowledge.patch('/entities/:id', async (c) => {
+knowledge.patch('/entities/:id', requireScope('knowledge.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing entity id' }, 400);
+  }
   const body = await c.req.json();
   const parsed = EntityUpdateSchema.safeParse(body);
 
@@ -92,9 +99,12 @@ knowledge.patch('/entities/:id', async (c) => {
 });
 
 // DELETE /entities/:id — Soft delete (archive)
-knowledge.delete('/entities/:id', async (c) => {
+knowledge.delete('/entities/:id', requireScope('knowledge.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing entity id' }, 400);
+  }
 
   const row = await archiveEntity(id, auth.agentId, auth.ownerId);
   if (!row) {
@@ -109,7 +119,7 @@ knowledge.delete('/entities/:id', async (c) => {
 // ---------------------------------------------------------------------------
 
 // POST /relations — Create relation
-knowledge.post('/relations', async (c) => {
+knowledge.post('/relations', requireScope('knowledge.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const body = await c.req.json();
   const parsed = RelationCreateSchema.safeParse(body);
@@ -127,7 +137,7 @@ knowledge.post('/relations', async (c) => {
 });
 
 // GET /relations — List relations (paginated, filterable)
-knowledge.get('/relations', async (c) => {
+knowledge.get('/relations', requireScope('knowledge.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const parsed = RelationListSchema.safeParse(c.req.query());
 
@@ -140,9 +150,12 @@ knowledge.get('/relations', async (c) => {
 });
 
 // DELETE /relations/:id — Hard delete relation
-knowledge.delete('/relations/:id', async (c) => {
+knowledge.delete('/relations/:id', requireScope('knowledge.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Missing relation id' }, 400);
+  }
 
   const row = await deleteRelation(id, auth.agentId, auth.ownerId);
   if (!row) {
@@ -157,7 +170,7 @@ knowledge.delete('/relations/:id', async (c) => {
 // ---------------------------------------------------------------------------
 
 // GET /traverse — Recursive graph traversal
-knowledge.get('/traverse', async (c) => {
+knowledge.get('/traverse', requireScope('knowledge.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const parsed = TraverseSchema.safeParse(c.req.query());
 
@@ -182,7 +195,7 @@ knowledge.get('/traverse', async (c) => {
 // ---------------------------------------------------------------------------
 
 // GET /search — Semantic search over entities
-knowledge.get('/search', async (c) => {
+knowledge.get('/search', requireScope('knowledge.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const parsed = SearchQuerySchema.safeParse(c.req.query());
 
@@ -206,7 +219,7 @@ knowledge.get('/search', async (c) => {
 // ---------------------------------------------------------------------------
 
 // POST /validate — Validate entity type constraints
-knowledge.post('/validate', async (c) => {
+knowledge.post('/validate', requireScope('knowledge.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
 
   const result = await validateConstraints(auth.agentId, auth.ownerId);
@@ -218,7 +231,7 @@ knowledge.post('/validate', async (c) => {
 // ---------------------------------------------------------------------------
 
 // POST /types — Create entity type
-knowledge.post('/types', async (c) => {
+knowledge.post('/types', requireScope('knowledge.write'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
   const body = await c.req.json();
   const parsed = EntityTypeCreateSchema.safeParse(body);
@@ -232,7 +245,7 @@ knowledge.post('/types', async (c) => {
 });
 
 // GET /types — List entity types
-knowledge.get('/types', async (c) => {
+knowledge.get('/types', requireScope('knowledge.read'), async (c) => {
   const auth = c.get('auth' as never) as AgentAuthPayload;
 
   const rows = await listEntityTypes(auth.ownerId);

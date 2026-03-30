@@ -1,7 +1,7 @@
 import { eq, and, desc, sql, gte, isNull, SQL } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { learnings, learningPatterns } from '../db/schema.js';
-import { generateEmbedding } from '../lib/embeddings.js';
+import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
 import { indexDocument, searchDocuments } from './search.js';
 import { logAuditEvent } from './audit.js';
 import {
@@ -263,7 +263,7 @@ export async function searchLearnings(
   minScore: number,
 ) {
   // Generate embedding for semantic search
-  const embedding = await generateEmbedding(query);
+  const embedding = await generateQueryEmbedding(query);
 
   if (embedding.length === 0) {
     // Fall back to Meilisearch text search

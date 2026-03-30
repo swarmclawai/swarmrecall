@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { ApiKeyCreateSchema } from '@swarmrecall/shared';
 import type { DashboardAuthPayload } from '../middleware/auth.js';
-import { createApiKey, listApiKeys, revokeApiKey } from '../services/apikeys.js';
+import { ApiKeyValidationError, createApiKey, listApiKeys, revokeApiKey } from '../services/apikeys.js';
 import { logAuditEvent } from '../services/audit.js';
 
 const apikeysRouter = new Hono();
@@ -16,13 +16,21 @@ apikeysRouter.post('/', async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const result = await createApiKey({
-    ownerId: auth.ownerId,
-    agentId: parsed.data.agentId,
-    name: parsed.data.name,
-    scopes: parsed.data.scopes,
-    expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : undefined,
-  });
+  let result;
+  try {
+    result = await createApiKey({
+      ownerId: auth.ownerId,
+      agentId: parsed.data.agentId,
+      name: parsed.data.name,
+      scopes: parsed.data.scopes,
+      expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : undefined,
+    });
+  } catch (err) {
+    if (err instanceof ApiKeyValidationError) {
+      return c.json({ error: err.message }, err.status as 400 | 404);
+    }
+    throw err;
+  }
 
   await logAuditEvent({
     eventType: 'apikey.created',
