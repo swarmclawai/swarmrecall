@@ -1,34 +1,40 @@
-import OpenAI from 'openai';
+const EMBEDDING_DIM = 1536;
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let extractor: unknown = null;
 
-const model = process.env.EMBEDDING_MODEL ?? 'text-embedding-3-small';
-const dimensions = Number(process.env.EMBEDDING_DIMENSIONS ?? 1536);
+export async function initEmbeddings(): Promise<void> {
+  if (extractor) return;
+  console.log('Loading embedding model (nomic-embed-text-v1.5)...');
+  const { pipeline } = await import('@huggingface/transformers');
+  extractor = await (pipeline as Function)('feature-extraction', 'nomic-ai/nomic-embed-text-v1.5', {
+    dtype: 'fp32',
+  });
+  console.log('Embedding model loaded (768 native dims, padded to 1536).');
+}
+
+function padTo1536(arr: number[]): number[] {
+  if (arr.length >= EMBEDDING_DIM) return arr.slice(0, EMBEDDING_DIM);
+  const padded = new Array(EMBEDDING_DIM).fill(0);
+  for (let i = 0; i < arr.length; i++) padded[i] = arr[i];
+  return padded;
+}
 
 export async function generateEmbedding(text: string): Promise<number[]> {
-  if (!process.env.OPENAI_API_KEY) {
-    return [];
-  }
+  if (!extractor) await initEmbeddings();
+  const prefixed = `search_document: ${text}`;
+  const output = await (extractor as Function)(prefixed, { pooling: 'mean', normalize: true });
+  const data = (output as { data: Float32Array }).data;
+  return padTo1536(Array.from(data));
+}
 
-  const res = await openai.embeddings.create({
-    model,
-    input: text.slice(0, 8000),
-    dimensions,
-  });
-
-  return res.data[0].embedding;
+export async function generateQueryEmbedding(text: string): Promise<number[]> {
+  if (!extractor) await initEmbeddings();
+  const prefixed = `search_query: ${text}`;
+  const output = await (extractor as Function)(prefixed, { pooling: 'mean', normalize: true });
+  const data = (output as { data: Float32Array }).data;
+  return padTo1536(Array.from(data));
 }
 
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
-  if (!process.env.OPENAI_API_KEY || texts.length === 0) {
-    return texts.map(() => []);
-  }
-
-  const res = await openai.embeddings.create({
-    model,
-    input: texts.map((t) => t.slice(0, 8000)),
-    dimensions,
-  });
-
-  return res.data.map((d) => d.embedding);
+  return Promise.all(texts.map((t) => generateEmbedding(t)));
 }

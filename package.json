@@ -26,7 +26,8 @@
       "@firebase/util",
       "esbuild",
       "protobufjs",
-      "sharp"
+      "sharp",
+      "onnxruntime-node"
     ]
   }
 }

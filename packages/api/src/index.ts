@@ -14,6 +14,7 @@ import { apiKeyAuth, firebaseAuth } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { ensureIndexes } from './services/search.js';
 import { connectRedis } from './lib/redis.js';
+import { initEmbeddings } from './lib/embeddings.js';
 
 const app = new Hono();
 
@@ -58,6 +59,7 @@ const port = Number(process.env.PORT ?? 3300);
 async function start() {
   await connectRedis();
   await ensureIndexes();
+  initEmbeddings().catch(() => console.warn('Embedding model load deferred'));
   serve({ fetch: app.fetch, port });
   console.log(`SwarmRecall API running on port ${port}`);
 }
