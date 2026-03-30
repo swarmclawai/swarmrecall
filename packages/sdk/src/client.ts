@@ -5,6 +5,16 @@ export interface SwarmRecallClientOptions {
   baseUrl?: string;
 }
 
+export interface RegisterOptions {
+  name?: string;
+  baseUrl?: string;
+}
+
+export interface RegisterResponse {
+  apiKey: string;
+  claimToken: string;
+}
+
 export class SwarmRecallClient {
   private readonly baseUrl: string;
   private readonly apiKey: string;
@@ -21,6 +31,26 @@ export class SwarmRecallClient {
     this.knowledge = new KnowledgeOperations(this);
     this.learnings = new LearningsOperations(this);
     this.skills = new SkillsOperations(this);
+  }
+
+  /**
+   * Register a new agent and receive an API key. No account required.
+   * The returned claimToken can be used at swarmrecall.ai/claim to link
+   * the agent to a user account.
+   */
+  static async register(options?: RegisterOptions): Promise<RegisterResponse> {
+    const url = (options?.baseUrl ?? 'https://api.swarmrecall.ai').replace(/\/+$/, '');
+    const res = await fetch(`${url}/api/v1/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: options?.name }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      const msg = (data as { error?: string }).error ?? `Registration failed (HTTP ${res.status})`;
+      throw new SwarmRecallError(msg, res.status);
+    }
+    return res.json() as Promise<RegisterResponse>;
   }
 
   /** @internal */

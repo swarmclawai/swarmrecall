@@ -181,6 +181,33 @@ export interface AuditLogEntry {
   payload: Record<string, unknown> | null;
 }
 
+// --- Registration ---
+
+export interface ClaimToken {
+  id: string;
+  token: string;
+  ownerId: string;
+  agentId: string;
+  claimedBy: string | null;
+  claimedAt: string | null;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface RegisterResponse {
+  apiKey: string;
+  agentId: string;
+  ownerId: string;
+  claimToken: string;
+  claimUrl: string;
+}
+
+export interface ClaimResponse {
+  ownerId: string;
+  agentId: string;
+  agentName: string;
+}
+
 // --- API Context ---
 
 export interface ApiKeyContext {
