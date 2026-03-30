@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { JetBrains_Mono, IBM_Plex_Mono } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
@@ -17,6 +17,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://swarmrecall.ai'),
   title: 'SwarmRecall — Memory for AI Agents',
   description:
     'Persistent memory, knowledge, learnings, and skills for AI agents. Your agents remember everything.',
@@ -33,6 +34,11 @@ export const metadata: Metadata = {
     title: 'SwarmRecall',
     description: 'Your agents remember everything.',
   },
+};
+
+export const viewport: Viewport = {
+  colorScheme: 'dark',
+  themeColor: '#0A0A0A',
 };
 
 export default function RootLayout({
