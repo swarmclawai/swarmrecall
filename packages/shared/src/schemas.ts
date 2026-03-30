@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   MEMORY_CATEGORIES, LEARNING_CATEGORIES, LEARNING_PRIORITIES,
   LEARNING_STATUSES, LEARNING_AREAS, SKILL_STATUSES, API_KEY_SCOPES,
-  ENTITY_TYPES,
+  ENTITY_TYPES, POOL_ACCESS_LEVELS,
 } from './constants.js';
 
 // --- Pagination ---
@@ -27,6 +27,7 @@ export const MemoryCreateSchema = z.object({
   tags: z.array(z.string().max(50)).max(20).default([]),
   metadata: z.record(z.unknown()).optional(),
   sessionId: z.string().uuid().optional(),
+  poolId: z.string().uuid().optional(),
 });
 
 export const MemoryUpdateSchema = z.object({
@@ -44,6 +45,7 @@ export const MemoryListSchema = PaginationSchema.extend({
 
 export const SessionCreateSchema = z.object({
   context: z.record(z.unknown()).optional(),
+  poolId: z.string().uuid().optional(),
 });
 
 export const SessionUpdateSchema = z.object({
@@ -58,6 +60,7 @@ export const EntityCreateSchema = z.object({
   type: z.string().min(1).max(50),
   name: z.string().min(1).max(200),
   properties: z.record(z.unknown()).default({}),
+  poolId: z.string().uuid().optional(),
 });
 
 export const EntityUpdateSchema = z.object({
@@ -76,6 +79,7 @@ export const RelationCreateSchema = z.object({
   toEntityId: z.string().uuid(),
   relation: z.string().min(1).max(100),
   properties: z.record(z.unknown()).optional(),
+  poolId: z.string().uuid().optional(),
 });
 
 export const RelationListSchema = PaginationSchema.extend({
@@ -106,6 +110,7 @@ export const LearningCreateSchema = z.object({
   suggestedAction: z.string().max(2000).optional(),
   tags: z.array(z.string().max(50)).max(20).default([]),
   metadata: z.record(z.unknown()).optional(),
+  poolId: z.string().uuid().optional(),
 });
 
 export const LearningUpdateSchema = z.object({
@@ -139,6 +144,7 @@ export const SkillRegisterSchema = z.object({
   triggers: z.array(z.string().max(200)).max(20).default([]),
   dependencies: z.array(z.string().max(200)).max(50).default([]),
   config: z.record(z.unknown()).optional(),
+  poolId: z.string().uuid().optional(),
 });
 
 export const SkillUpdateSchema = z.object({
@@ -186,6 +192,33 @@ export const ClaimSchema = z.object({
   claimToken: z.string().min(1).max(20),
 });
 
+// --- Pools ---
+
+export const PoolCreateSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(2000).optional(),
+});
+
+export const PoolUpdateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(2000).optional(),
+});
+
+export const PoolMemberAddSchema = z.object({
+  agentId: z.string().uuid(),
+  memoryAccess: z.enum(POOL_ACCESS_LEVELS).default('none'),
+  knowledgeAccess: z.enum(POOL_ACCESS_LEVELS).default('none'),
+  learningsAccess: z.enum(POOL_ACCESS_LEVELS).default('none'),
+  skillsAccess: z.enum(POOL_ACCESS_LEVELS).default('none'),
+});
+
+export const PoolMemberUpdateSchema = z.object({
+  memoryAccess: z.enum(POOL_ACCESS_LEVELS).optional(),
+  knowledgeAccess: z.enum(POOL_ACCESS_LEVELS).optional(),
+  learningsAccess: z.enum(POOL_ACCESS_LEVELS).optional(),
+  skillsAccess: z.enum(POOL_ACCESS_LEVELS).optional(),
+});
+
 // --- Inferred types ---
 
 export type MemoryCreate = z.infer<typeof MemoryCreateSchema>;
@@ -209,3 +242,7 @@ export type AgentCreate = z.infer<typeof AgentCreateSchema>;
 export type AgentUpdate = z.infer<typeof AgentUpdateSchema>;
 export type Register = z.infer<typeof RegisterSchema>;
 export type Claim = z.infer<typeof ClaimSchema>;
+export type PoolCreate = z.infer<typeof PoolCreateSchema>;
+export type PoolUpdate = z.infer<typeof PoolUpdateSchema>;
+export type PoolMemberAdd = z.infer<typeof PoolMemberAddSchema>;
+export type PoolMemberUpdate = z.infer<typeof PoolMemberUpdateSchema>;

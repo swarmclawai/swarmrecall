@@ -14,6 +14,8 @@ interface Learning {
   category: string;
   status: string;
   priority: string;
+  poolId?: string;
+  poolName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +24,8 @@ interface Pattern {
   id: string;
   patternSummary: string;
   recurrenceCount: number;
+  poolId?: string;
+  poolName?: string;
   lastSeenAt: string;
 }
 
@@ -238,6 +242,11 @@ export default function LearningsPage() {
                       >
                         {learning.priority}
                       </span>
+                      {learning.poolName && (
+                        <span className="inline-flex rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+                          {learning.poolName}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-2 text-xs text-gray-400">
                       {new Date(learning.createdAt).toLocaleString()}

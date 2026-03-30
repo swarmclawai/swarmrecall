@@ -163,7 +163,7 @@ memory.post('/sessions', requireScope('memory.write'), async (c) => {
     return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
   }
 
-  const row = await startSession(auth.agentId, auth.ownerId, parsed.data.context);
+  const row = await startSession(auth.agentId, auth.ownerId, parsed.data.context, parsed.data.poolId);
   return c.json(row, 201);
 });
 

@@ -25,6 +25,7 @@ test('syncMemorySearchDocument indexes active memories and removes archived ones
       content: 'hello world',
       category: 'fact',
       tags: ['tag-1'],
+      poolId: null,
       archivedAt: null,
     });
 
@@ -35,6 +36,7 @@ test('syncMemorySearchDocument indexes active memories and removes archived ones
       content: 'archived',
       category: 'fact',
       tags: [],
+      poolId: null,
       archivedAt: new Date('2026-03-30T12:00:00.000Z'),
     });
   } finally {
@@ -51,6 +53,7 @@ test('syncMemorySearchDocument indexes active memories and removes archived ones
           id: 'mem-1',
           ownerId: 'owner-1',
           agentId: 'agent-1',
+          poolId: null,
           content: 'hello world',
           category: 'fact',
           tags: ['tag-1'],
@@ -83,6 +86,7 @@ test('syncEntitySearchDocument indexes active entities', async () => {
       agentId: 'agent-1',
       name: 'Alice',
       type: 'Person',
+      poolId: null,
       archivedAt: null,
     });
   } finally {
@@ -99,6 +103,7 @@ test('syncEntitySearchDocument indexes active entities', async () => {
           id: 'ent-1',
           ownerId: 'owner-1',
           agentId: 'agent-1',
+          poolId: null,
           name: 'Alice',
           type: 'Person',
         },
@@ -132,6 +137,7 @@ test('syncLearningSearchDocument indexes active learnings', async () => {
       area: 'backend',
       suggestedAction: 'Add tests',
       tags: ['tenant'],
+      poolId: null,
       archivedAt: null,
     });
   } finally {
@@ -148,6 +154,7 @@ test('syncLearningSearchDocument indexes active learnings', async () => {
           id: 'lrn-1',
           agentId: 'agent-1',
           ownerId: 'owner-1',
+          poolId: null,
           category: 'best_practice',
           summary: 'Prefer tenant scoping',
           details: 'Always include owner filters',

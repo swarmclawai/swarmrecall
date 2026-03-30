@@ -23,6 +23,7 @@ export class SwarmRecallClient {
   readonly knowledge: KnowledgeOperations;
   readonly learnings: LearningsOperations;
   readonly skills: SkillsOperations;
+  readonly pools: PoolOperations;
 
   constructor(options: SwarmRecallClientOptions) {
     this.baseUrl = (options.baseUrl ?? 'https://api.swarmrecall.ai').replace(/\/+$/, '');
@@ -31,6 +32,7 @@ export class SwarmRecallClient {
     this.knowledge = new KnowledgeOperations(this);
     this.learnings = new LearningsOperations(this);
     this.skills = new SkillsOperations(this);
+    this.pools = new PoolOperations(this);
   }
 
   /**
@@ -93,7 +95,7 @@ export class SwarmRecallClient {
 class SessionOperations {
   constructor(private client: SwarmRecallClient) {}
 
-  start(params?: { context?: Record<string, unknown> }) {
+  start(params?: { context?: Record<string, unknown>; poolId?: string }) {
     return this.client.request('POST', '/memory/sessions', params);
   }
 
@@ -117,7 +119,7 @@ class MemoryOperations {
     this.sessions = new SessionOperations(client);
   }
 
-  store(params: { content: string; category: string; importance?: number; tags?: string[]; metadata?: Record<string, unknown>; sessionId?: string }) {
+  store(params: { content: string; category: string; importance?: number; tags?: string[]; metadata?: Record<string, unknown>; sessionId?: string; poolId?: string }) {
     return this.client.request('POST', '/memory', params);
   }
 
@@ -157,7 +159,7 @@ class MemoryOperations {
 class EntityOperations {
   constructor(private client: SwarmRecallClient) {}
 
-  create(params: { type: string; name: string; properties?: Record<string, unknown> }) {
+  create(params: { type: string; name: string; properties?: Record<string, unknown>; poolId?: string }) {
     return this.client.request('POST', '/knowledge/entities', params);
   }
 
@@ -186,7 +188,7 @@ class EntityOperations {
 class RelationOperations {
   constructor(private client: SwarmRecallClient) {}
 
-  create(params: { fromEntityId: string; toEntityId: string; relation: string; properties?: Record<string, unknown> }) {
+  create(params: { fromEntityId: string; toEntityId: string; relation: string; properties?: Record<string, unknown>; poolId?: string }) {
     return this.client.request('POST', '/knowledge/relations', params);
   }
 
@@ -242,6 +244,7 @@ class LearningsOperations {
   log(params: {
     category: string; summary: string; details?: string; priority?: string;
     area?: string; suggestedAction?: string; tags?: string[]; metadata?: Record<string, unknown>;
+    poolId?: string;
   }) {
     return this.client.request('POST', '/learnings', params);
   }
@@ -302,6 +305,7 @@ class SkillsOperations {
   register(params: {
     name: string; version?: string; source?: string; description?: string;
     triggers?: string[]; dependencies?: string[]; config?: Record<string, unknown>;
+    poolId?: string;
   }) {
     return this.client.request('POST', '/skills', params);
   }
@@ -331,5 +335,19 @@ class SkillsOperations {
       context,
       ...(limit ? { limit: String(limit) } : {}),
     });
+  }
+}
+
+// --- Pools ---
+
+class PoolOperations {
+  constructor(private client: SwarmRecallClient) {}
+
+  list() {
+    return this.client.request('GET', '/pools');
+  }
+
+  get(poolId: string) {
+    return this.client.request('GET', `/pools/${poolId}`);
   }
 }

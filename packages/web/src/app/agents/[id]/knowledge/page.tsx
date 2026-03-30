@@ -12,6 +12,8 @@ interface Entity {
   name: string;
   type: string;
   properties: Record<string, unknown>;
+  poolId?: string;
+  poolName?: string;
   createdAt: string;
 }
 
@@ -20,6 +22,8 @@ interface Relation {
   fromEntityId: string;
   toEntityId: string;
   relation: string;
+  poolId?: string;
+  poolName?: string;
   createdAt: string;
 }
 
@@ -180,9 +184,16 @@ export default function KnowledgePage() {
                       <h3 className="text-sm font-medium text-gray-900">
                         {entity.name}
                       </h3>
-                      <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                        {entity.type}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                          {entity.type}
+                        </span>
+                        {entity.poolName && (
+                          <span className="inline-flex rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+                            {entity.poolName}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {Object.keys(entity.properties).length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
@@ -233,6 +244,11 @@ export default function KnowledgePage() {
                       <span className="font-medium text-gray-900">
                         {entityNames.get(relation.toEntityId) ?? relation.toEntityId.slice(0, 8)}
                       </span>
+                      {relation.poolName && (
+                        <span className="inline-flex rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+                          {relation.poolName}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-1 text-xs text-gray-400">
                       Added {new Date(relation.createdAt).toLocaleDateString()}

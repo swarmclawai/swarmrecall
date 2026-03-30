@@ -1,3 +1,20 @@
+---
+name: swarmrecall
+description: Persistent memory, knowledge graphs, learnings, skill tracking, and shared pools for AI agents via the SwarmRecall API. Full agent persistence layer with semantic search across all modules, session management, error pattern detection, and cross-agent collaboration pools.
+metadata:
+  openclaw:
+    emoji: "\U0001F9E0"
+    requires:
+      env: [SWARMRECALL_API_KEY]
+    primaryEnv: SWARMRECALL_API_KEY
+    privacyPolicy: All data is stored on SwarmRecall servers (api.swarmrecall.ai). Data is scoped per agent and owner. The agent must have user consent before storing personal or sensitive information.
+    dataHandling: All data is transmitted over HTTPS. Data is stored in PostgreSQL with pgvector embeddings. Data is tenant-isolated by owner ID and agent ID across all modules.
+version: 1.0.3
+author: swarmclawai
+homepage: https://www.swarmrecall.ai
+tags: [memory, knowledge-graph, learnings, skills, pools, ai-agents, persistence]
+---
+
 # SwarmRecall
 
 Persistent memory, knowledge graphs, learnings, and skill tracking for AI agents via the SwarmRecall API.
@@ -14,7 +31,7 @@ Before making any API calls, check for a `SWARMRECALL_API_KEY` environment varia
 
    { "name": "<your-agent-name>" }
    ```
-3. The response returns `{ "apiKey": "...", "claimToken": "..." }`. Save the `apiKey` as `SWARMRECALL_API_KEY` for all subsequent requests.
+3. The response returns `{ "apiKey": "...", "claimToken": "..." }`. Save the `apiKey` to the `SWARMRECALL_API_KEY` environment variable for all subsequent requests. Do NOT write the key to disk or any file without user consent.
 4. Tell the user: "SwarmRecall is set up! To manage your agent's data, visit swarmrecall.ai/claim with code: `<claimToken>`"
 
 ## Authentication
@@ -29,6 +46,14 @@ Authorization: Bearer <SWARMRECALL_API_KEY>
 `https://api.swarmrecall.ai` (override with `SWARMRECALL_API_URL` if set)
 
 All endpoints below are prefixed with `/api/v1`.
+
+## Privacy & Data Handling
+
+- All data is sent to `api.swarmrecall.ai` over HTTPS
+- All module data (memories, entities, learnings, skills) is stored server-side with vector embeddings for semantic search
+- Data is isolated per agent and owner — no cross-tenant access
+- Before storing user-provided content, ensure the user has consented to external storage
+- The `SWARMRECALL_API_KEY` should be stored as an environment variable only, not written to disk
 
 ---
 
@@ -52,7 +77,8 @@ POST /api/v1/memory
   "category": "preference",   // fact | preference | decision | context | session_summary
   "importance": 0.8,           // 0.0 to 1.0
   "tags": ["ui", "settings"],
-  "metadata": {}
+  "metadata": {},
+  "poolId": "<uuid>"           // optional — write to shared pool
 }
 ```
 
@@ -85,7 +111,10 @@ DELETE /api/v1/memory/:id
 #### Start a session
 ```
 POST /api/v1/memory/sessions
-{ "context": {} }
+{
+  "context": {},
+  "poolId": "<uuid>"           // optional — write to shared pool
+}
 ```
 
 #### Get current session
@@ -131,7 +160,8 @@ POST /api/v1/knowledge/entities
 {
   "type": "person",
   "name": "Alice",
-  "properties": { "role": "engineer" }
+  "properties": { "role": "engineer" },
+  "poolId": "<uuid>"           // optional — write to shared pool
 }
 ```
 
@@ -163,7 +193,8 @@ POST /api/v1/knowledge/relations
   "fromEntityId": "<id>",
   "toEntityId": "<id>",
   "relation": "works_on",
-  "properties": {}
+  "properties": {},
+  "poolId": "<uuid>"           // optional — write to shared pool
 }
 ```
 
@@ -224,7 +255,8 @@ POST /api/v1/learnings
   "area": "build",
   "suggestedAction": "Use --legacy-peer-deps flag",
   "tags": ["npm", "build"],
-  "metadata": {}
+  "metadata": {},
+  "poolId": "<uuid>"          // optional — write to shared pool
 }
 ```
 
@@ -296,7 +328,8 @@ POST /api/v1/skills
   "description": "Automated code review with inline suggestions",
   "triggers": ["review", "PR"],
   "dependencies": ["git"],
-  "config": {}
+  "config": {},
+  "poolId": "<uuid>"           // optional — write to shared pool
 }
 ```
 
@@ -331,3 +364,37 @@ GET /api/v1/skills/suggest?context=<task-description>&limit=5
 - On skill install: call `POST /api/v1/skills` to register the skill with name, version, and source.
 - On "what can I do?": call `GET /api/v1/skills` to list installed capabilities.
 - On task context: call `GET /api/v1/skills/suggest?context=<description>` for relevant skill recommendations.
+
+---
+
+## Module 5: Shared Pools
+
+Named shared data containers for cross-agent collaboration.
+
+### When to use
+
+- Sharing memories, knowledge, learnings, or skills between agents
+- Building collaborative workflows where multiple agents contribute to a shared dataset
+- Viewing what pools the agent belongs to and who else is in them
+
+### Endpoints
+
+#### List pools
+```
+GET /api/v1/pools
+```
+Returns the pools this agent belongs to.
+
+#### Get pool details
+```
+GET /api/v1/pools/:id
+```
+Returns pool details and its members.
+
+### Behavior
+
+- Pools let agents share data across organizational boundaries. When an agent belongs to a pool, search and list results across all modules (memory, knowledge, learnings, skills) automatically include data from that pool.
+- To write data to a shared pool, include `"poolId": "<uuid>"` in any create request for memory, knowledge entities, knowledge relations, learnings, or skills (see the `poolId` field in Modules 1-4 endpoint examples above).
+- The agent must have the appropriate access level for the pool and module (e.g., readwrite access to the pool's memory module to store shared memories).
+- Pool data returned in responses includes `poolId` and `poolName` fields to distinguish shared data from the agent's own data.
+- On session start: call `GET /api/v1/pools` to see available pools and their access levels.

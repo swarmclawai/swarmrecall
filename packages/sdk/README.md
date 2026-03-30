@@ -377,6 +377,47 @@ const suggestions = await client.skills.suggest('reviewing a pull request', 5);
 
 ---
 
+### Pools
+
+Query shared data pools this agent belongs to. Pool management is done via the dashboard.
+
+#### `client.pools.list()`
+
+```typescript
+const pools = await client.pools.list();
+```
+
+#### `client.pools.get(poolId)`
+
+```typescript
+const pool = await client.pools.get('pool_abc123');
+// Returns pool info + members with access levels
+```
+
+#### Writing to a Pool
+
+Any create method accepts an optional `poolId` to write data into a shared pool:
+
+```typescript
+// Store a memory in a shared pool
+await client.memory.store({
+  content: 'Shared team knowledge',
+  category: 'fact',
+  poolId: 'pool_abc123',
+});
+
+// Create an entity in a shared pool
+await client.knowledge.entities.create({
+  type: 'Project',
+  name: 'Shared Project',
+  poolId: 'pool_abc123',
+});
+```
+
+Pool data automatically appears in search and list results for all pool members with read access.
+
+---
+
 ## Error Handling
 
 All API errors are thrown as typed exceptions:
