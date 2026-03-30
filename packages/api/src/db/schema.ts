@@ -1,6 +1,6 @@
 import {
   pgTable, text, uuid, timestamp, real, jsonb, serial, integer,
-  index, uniqueIndex, customType, foreignKey,
+  index, uniqueIndex, customType,
 } from 'drizzle-orm/pg-core';
 
 // Custom vector type for pgvector
@@ -46,10 +46,7 @@ export const agents = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    index('agents_owner_idx').on(t.ownerId),
-    uniqueIndex('agents_id_owner_idx').on(t.id, t.ownerId),
-  ],
+  (t) => [index('agents_owner_idx').on(t.ownerId)],
 );
 
 export const apiKeys = pgTable(
@@ -57,7 +54,7 @@ export const apiKeys = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     ownerId: uuid('owner_id').notNull().references(() => owners.id),
-    agentId: uuid('agent_id'),
+    agentId: uuid('agent_id').references(() => agents.id),
     name: text('name').notNull(),
     keyPrefix: text('key_prefix').notNull(),
     keyHash: text('key_hash').notNull(),
@@ -68,11 +65,6 @@ export const apiKeys = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    foreignKey({
-      columns: [t.agentId, t.ownerId],
-      foreignColumns: [agents.id, agents.ownerId],
-      name: 'api_keys_agent_owner_fk',
-    }),
     uniqueIndex('api_keys_hash_idx').on(t.keyHash),
     index('api_keys_owner_idx').on(t.ownerId),
   ],
@@ -91,11 +83,6 @@ export const claimTokens = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    foreignKey({
-      columns: [t.agentId, t.ownerId],
-      foreignColumns: [agents.id, agents.ownerId],
-      name: 'claim_tokens_agent_owner_fk',
-    }),
     uniqueIndex('claim_tokens_token_idx').on(t.token),
     index('claim_tokens_owner_idx').on(t.ownerId),
   ],
@@ -107,7 +94,7 @@ export const memorySessions = pgTable(
   'memory_sessions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    agentId: uuid('agent_id').notNull(),
+    agentId: uuid('agent_id').notNull().references(() => agents.id),
     ownerId: uuid('owner_id').notNull().references(() => owners.id),
     context: jsonb('context'),
     currentState: jsonb('current_state'),
@@ -117,14 +104,8 @@ export const memorySessions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    foreignKey({
-      columns: [t.agentId, t.ownerId],
-      foreignColumns: [agents.id, agents.ownerId],
-      name: 'memory_sessions_agent_owner_fk',
-    }),
     index('memory_sessions_agent_idx').on(t.agentId),
     index('memory_sessions_owner_idx').on(t.ownerId),
-    uniqueIndex('memory_sessions_id_owner_agent_idx').on(t.id, t.ownerId, t.agentId),
   ],
 );
 
@@ -132,7 +113,7 @@ export const memories = pgTable(
   'memories',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    agentId: uuid('agent_id').notNull(),
+    agentId: uuid('agent_id').notNull().references(() => agents.id),
     ownerId: uuid('owner_id').notNull().references(() => owners.id),
     content: text('content').notNull(),
     category: text('category').notNull(),
@@ -140,22 +121,12 @@ export const memories = pgTable(
     tags: text('tags').array().notNull().default([]),
     metadata: jsonb('metadata'),
     embedding: vector('embedding'),
-    sessionId: uuid('session_id'),
+    sessionId: uuid('session_id').references(() => memorySessions.id),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    foreignKey({
-      columns: [t.agentId, t.ownerId],
-      foreignColumns: [agents.id, agents.ownerId],
-      name: 'memories_agent_owner_fk',
-    }),
-    foreignKey({
-      columns: [t.sessionId, t.ownerId, t.agentId],
-      foreignColumns: [memorySessions.id, memorySessions.ownerId, memorySessions.agentId],
-      name: 'memories_session_owner_agent_fk',
-    }),
     index('memories_agent_idx').on(t.agentId),
     index('memories_owner_idx').on(t.ownerId),
     index('memories_category_idx').on(t.category),
@@ -168,7 +139,7 @@ export const entities = pgTable(
   'entities',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    agentId: uuid('agent_id').notNull(),
+    agentId: uuid('agent_id').notNull().references(() => agents.id),
     ownerId: uuid('owner_id').notNull().references(() => owners.id),
     type: text('type').notNull(),
     name: text('name').notNull(),
@@ -179,15 +150,9 @@ export const entities = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    foreignKey({
-      columns: [t.agentId, t.ownerId],
-      foreignColumns: [agents.id, agents.ownerId],
-      name: 'entities_agent_owner_fk',
-    }),
     index('entities_agent_idx').on(t.agentId),
     index('entities_owner_idx').on(t.ownerId),
     index('entities_type_idx').on(t.type),
-    uniqueIndex('entities_id_owner_agent_idx').on(t.id, t.ownerId, t.agentId),
   ],
 );
 
@@ -195,30 +160,15 @@ export const relations = pgTable(
   'relations',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    agentId: uuid('agent_id').notNull(),
+    agentId: uuid('agent_id').notNull().references(() => agents.id),
     ownerId: uuid('owner_id').notNull().references(() => owners.id),
-    fromEntityId: uuid('from_entity_id').notNull(),
-    toEntityId: uuid('to_entity_id').notNull(),
+    fromEntityId: uuid('from_entity_id').notNull().references(() => entities.id),
+    toEntityId: uuid('to_entity_id').notNull().references(() => entities.id),
     relation: text('relation').notNull(),
     properties: jsonb('properties'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    foreignKey({
-      columns: [t.agentId, t.ownerId],
-      foreignColumns: [agents.id, agents.ownerId],
-      name: 'relations_agent_owner_fk',
-    }),
-    foreignKey({
-      columns: [t.fromEntityId, t.ownerId, t.agentId],
-      foreignColumns: [entities.id, entities.ownerId, entities.agentId],
-      name: 'relations_from_entity_owner_agent_fk',
-    }),
-    foreignKey({
-      columns: [t.toEntityId, t.ownerId, t.agentId],
-      foreignColumns: [entities.id, entities.ownerId, entities.agentId],
-      name: 'relations_to_entity_owner_agent_fk',
-    }),
     index('relations_agent_idx').on(t.agentId),
     index('relations_owner_idx').on(t.ownerId),
     index('relations_from_idx').on(t.fromEntityId),
@@ -245,7 +195,7 @@ export const learnings = pgTable(
   'learnings',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    agentId: uuid('agent_id').notNull(),
+    agentId: uuid('agent_id').notNull().references(() => agents.id),
     ownerId: uuid('owner_id').notNull().references(() => owners.id),
     category: text('category').notNull(),
     summary: text('summary').notNull(),
@@ -264,11 +214,6 @@ export const learnings = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    foreignKey({
-      columns: [t.agentId, t.ownerId],
-      foreignColumns: [agents.id, agents.ownerId],
-      name: 'learnings_agent_owner_fk',
-    }),
     index('learnings_agent_idx').on(t.agentId),
     index('learnings_owner_idx').on(t.ownerId),
     index('learnings_category_idx').on(t.category),
@@ -280,7 +225,7 @@ export const learningPatterns = pgTable(
   'learning_patterns',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    agentId: uuid('agent_id').notNull(),
+    agentId: uuid('agent_id').notNull().references(() => agents.id),
     ownerId: uuid('owner_id').notNull().references(() => owners.id),
     patternSummary: text('pattern_summary').notNull(),
     recurrenceCount: integer('recurrence_count').notNull().default(1),
@@ -292,11 +237,6 @@ export const learningPatterns = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    foreignKey({
-      columns: [t.agentId, t.ownerId],
-      foreignColumns: [agents.id, agents.ownerId],
-      name: 'learning_patterns_agent_owner_fk',
-    }),
     index('learning_patterns_agent_idx').on(t.agentId),
     index('learning_patterns_owner_idx').on(t.ownerId),
   ],
@@ -308,7 +248,7 @@ export const agentSkills = pgTable(
   'agent_skills',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    agentId: uuid('agent_id').notNull(),
+    agentId: uuid('agent_id').notNull().references(() => agents.id),
     ownerId: uuid('owner_id').notNull().references(() => owners.id),
     name: text('name').notNull(),
     version: text('version'),
@@ -325,14 +265,8 @@ export const agentSkills = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    foreignKey({
-      columns: [t.agentId, t.ownerId],
-      foreignColumns: [agents.id, agents.ownerId],
-      name: 'agent_skills_agent_owner_fk',
-    }),
     index('agent_skills_agent_idx').on(t.agentId),
     index('agent_skills_owner_idx').on(t.ownerId),
-    uniqueIndex('agent_skills_id_agent_idx').on(t.id, t.agentId),
   ],
 );
 
@@ -340,20 +274,13 @@ export const skillOverrides = pgTable(
   'skill_overrides',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    skillId: uuid('skill_id').notNull(),
+    skillId: uuid('skill_id').notNull().references(() => agentSkills.id),
     agentId: uuid('agent_id').notNull().references(() => agents.id),
     overrides: jsonb('overrides').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    foreignKey({
-      columns: [t.skillId, t.agentId],
-      foreignColumns: [agentSkills.id, agentSkills.agentId],
-      name: 'skill_overrides_skill_agent_fk',
-    }),
-    index('skill_overrides_skill_idx').on(t.skillId),
-  ],
+  (t) => [index('skill_overrides_skill_idx').on(t.skillId)],
 );
 
 // --- Audit ---
