@@ -204,7 +204,7 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href="https://clawhub.ai/skills/swarmrecall"
+              href="https://clawhub.ai/waydelyle/swarmrecall"
               target="_blank"
               rel="noopener noreferrer"
               className="h-12 px-8 text-base font-semibold rounded-xl bg-[#6366F1] hover:bg-[#818CF8] transition-all shadow-[0_0_30px_rgba(99,102,241,0.25)] hover:shadow-[0_0_40px_rgba(99,102,241,0.35)] flex items-center justify-center text-white"
