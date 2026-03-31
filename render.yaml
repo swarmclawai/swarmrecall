@@ -13,7 +13,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: CORS_ORIGINS
-        value: https://swarmrecall.ai,https://swarmrecall-web-capital-inclubator-projects.vercel.app
+        value: https://swarmrecall.ai,https://www.swarmrecall.ai,https://swarmrecall-web-capital-inclubator-projects.vercel.app
       - key: MEILISEARCH_URL
         value: http://swarmrecall-search:7700
       - key: MEILISEARCH_API_KEY
