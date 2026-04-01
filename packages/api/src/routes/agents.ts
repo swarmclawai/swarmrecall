@@ -14,6 +14,9 @@ import {
   SkillListSchema,
   MEMORY_CATEGORIES,
   EntityListSchema,
+  DreamListSchema,
+  DreamConfigUpdateSchema,
+  DreamTriggerSchema,
 } from '@swarmrecall/shared';
 import type { DashboardAuthPayload } from '../middleware/auth.js';
 import { parseJsonBody } from '../lib/request.js';
@@ -24,6 +27,9 @@ import { listEntities, listRelations, searchEntities } from '../services/knowled
 import { listMemories, listSessions, searchMemories } from '../services/memory.js';
 import { listSkills } from '../services/skills.js';
 import { getAgentStats } from '../services/stats.js';
+import {
+  startDreamCycle, listDreamCycles, getDreamConfig, upsertDreamConfig, executeTier1,
+} from '../services/dream.js';
 
 const DashboardMemorySearchSchema = SearchQuerySchema.extend({
   category: z.enum(MEMORY_CATEGORIES).optional(),
@@ -255,6 +261,76 @@ agentsRouter.get('/:id/skills', async (c) => {
   }
 
   const result = await listSkills(agent.id, auth.ownerId, parsed.data);
+  return c.json(result);
+});
+
+// POST /:id/dream — Trigger dream for agent
+agentsRouter.post('/:id/dream', async (c) => {
+  const auth = c.get('auth' as never) as DashboardAuthPayload;
+  const agent = getOwnedAgentFromContext(c);
+  const parsedBody = await parseJsonBody(c);
+
+  let input;
+  if (parsedBody.ok && parsedBody.data) {
+    const parsed = DreamTriggerSchema.safeParse(parsedBody.data);
+    if (!parsed.success) {
+      return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
+    }
+    input = parsed.data;
+  }
+
+  const cycle = await startDreamCycle({
+    agentId: agent.id,
+    ownerId: auth.ownerId,
+    input,
+    trigger: 'manual',
+  });
+  return c.json(cycle, 201);
+});
+
+// GET /:id/dream — List dream cycles for agent
+agentsRouter.get('/:id/dream', async (c) => {
+  const auth = c.get('auth' as never) as DashboardAuthPayload;
+  const agent = getOwnedAgentFromContext(c);
+  const parsed = DreamListSchema.safeParse(c.req.query());
+
+  if (!parsed.success) {
+    return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
+  }
+
+  const result = await listDreamCycles(auth.ownerId, parsed.data, agent.id);
+  return c.json(result);
+});
+
+// GET /:id/dream/config — Get dream config
+agentsRouter.get('/:id/dream/config', async (c) => {
+  const auth = c.get('auth' as never) as DashboardAuthPayload;
+  const agent = getOwnedAgentFromContext(c);
+  const config = await getDreamConfig(agent.id, auth.ownerId);
+  return c.json(config);
+});
+
+// PATCH /:id/dream/config — Update dream config
+agentsRouter.patch('/:id/dream/config', async (c) => {
+  const auth = c.get('auth' as never) as DashboardAuthPayload;
+  const agent = getOwnedAgentFromContext(c);
+  const parsedBody = await parseJsonBody(c);
+  if (!parsedBody.ok) return parsedBody.response;
+
+  const parsed = DreamConfigUpdateSchema.safeParse(parsedBody.data);
+  if (!parsed.success) {
+    return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
+  }
+
+  const config = await upsertDreamConfig(agent.id, auth.ownerId, parsed.data);
+  return c.json(config);
+});
+
+// POST /:id/dream/execute — Run Tier 1 ops for agent
+agentsRouter.post('/:id/dream/execute', async (c) => {
+  const auth = c.get('auth' as never) as DashboardAuthPayload;
+  const agent = getOwnedAgentFromContext(c);
+  const result = await executeTier1(agent.id, auth.ownerId);
   return c.json(result);
 });
 

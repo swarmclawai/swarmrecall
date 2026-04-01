@@ -9,10 +9,10 @@ metadata:
     primaryEnv: SWARMRECALL_API_KEY
     privacyPolicy: All data is stored on SwarmRecall servers (api.swarmrecall.ai). Data is scoped per agent and owner. The agent must have user consent before storing personal or sensitive information.
     dataHandling: All data is transmitted over HTTPS. Data is stored in PostgreSQL with pgvector embeddings. Data is tenant-isolated by owner ID and agent ID across all modules.
-version: 1.0.3
+version: 1.1.0
 author: swarmclawai
 homepage: https://www.swarmrecall.ai
-tags: [memory, knowledge-graph, learnings, skills, pools, ai-agents, persistence]
+tags: [memory, knowledge-graph, learnings, skills, pools, dreaming, consolidation, ai-agents, persistence]
 ---
 
 # SwarmRecall
@@ -398,3 +398,48 @@ Returns pool details and its members.
 - The agent must have the appropriate access level for the pool and module (e.g., readwrite access to the pool's memory module to store shared memories).
 - Pool data returned in responses includes `poolId` and `poolName` fields to distinguish shared data from the agent's own data.
 - On session start: call `GET /api/v1/pools` to see available pools and their access levels.
+
+---
+
+## Module 6: Dreaming
+
+Background memory consolidation — deduplication, pruning, contradiction resolution, and session summarization.
+
+### When to use
+
+- Between sessions or during idle periods for memory maintenance
+- When the user asks to "clean up", "consolidate", or "optimize" memories
+- Periodically via auto-dream scheduling
+
+### Endpoints
+
+#### Dream cycle management
+```
+POST /api/v1/dream                    — Start a dream cycle (409 if already running)
+GET  /api/v1/dream                    — List dream cycles
+GET  /api/v1/dream/:id               — Get cycle details + results
+PATCH /api/v1/dream/:id              — Update cycle (report results, mark complete/failed)
+GET  /api/v1/dream/config             — Get dream config
+PATCH /api/v1/dream/config            — Update dream config
+POST /api/v1/dream/execute            — Run Tier 1 server-side ops (decay, prune, orphan cleanup)
+```
+
+#### Candidate primitives (building blocks for agent-driven dreaming)
+```
+GET /api/v1/dream/candidates/duplicates              — Memory clusters above similarity threshold
+GET /api/v1/dream/candidates/unsummarized-sessions   — Completed sessions missing summaries
+GET /api/v1/dream/candidates/duplicate-entities      — Entity pairs that may be duplicates
+GET /api/v1/dream/candidates/stale                   — Memories past decay age
+GET /api/v1/dream/candidates/contradictions           — Memory pairs with divergent content
+GET /api/v1/dream/candidates/unprocessed             — Memories not yet processed for entity extraction
+```
+
+### Behavior
+
+1. Start a dream cycle: `POST /api/v1/dream`
+2. Run Tier 1 ops: `POST /api/v1/dream/execute` (decay, prune, orphan cleanup)
+3. Fetch candidates (duplicates, unsummarized sessions, contradictions)
+4. For each candidate: reason about it, then use existing memory/knowledge/learnings endpoints to act
+5. Complete the cycle: `PATCH /api/v1/dream/:cycleId` with results
+
+See the standalone `swarmrecall-dream` skill for full documentation and examples.

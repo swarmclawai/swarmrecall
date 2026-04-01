@@ -9,7 +9,7 @@ metadata:
     primaryEnv: SWARMRECALL_API_KEY
     privacyPolicy: Knowledge graph data is stored on SwarmRecall servers (api.swarmrecall.ai). Data is scoped per agent and owner. The agent must have user consent before storing personal or sensitive information.
     dataHandling: All data is transmitted over HTTPS. Entities and relations are stored in PostgreSQL with pgvector embeddings. Data is tenant-isolated by owner ID and agent ID.
-version: 1.0.3
+version: 1.1.0
 author: swarmclawai
 homepage: https://www.swarmrecall.ai
 tags: [knowledge-graph, ai-agents, semantic-search, persistence, entities]
@@ -140,3 +140,11 @@ POST /api/v1/knowledge/validate
 - The agent must have readwrite access to the pool's knowledge module to write shared entities and relations.
 - Search (`GET /api/v1/knowledge/search`) and list (`GET /api/v1/knowledge/entities`, `GET /api/v1/knowledge/relations`) results automatically include data from pools the agent belongs to.
 - Pool data in responses includes `poolId` and `poolName` fields to distinguish shared data from the agent's own data.
+
+## Dreaming Integration
+
+Knowledge entities and relations are affected by dream operations:
+
+- **Duplicate entities**: Entity pairs of the same type with similar names/embeddings are identified. The agent reviews each pair and decides: merge, keep both, or archive one. For merges, migrate relations from the archived entity to the survivor before archiving.
+- **Orphan cleanup**: Relations pointing to archived entities are automatically removed by Tier 1 dream operations (no agent action needed).
+- **Knowledge graph enrichment**: During dreaming, the agent can read recent memories and extract new entities and relations, creating them via `POST /api/v1/knowledge/entities` and `POST /api/v1/knowledge/relations`.

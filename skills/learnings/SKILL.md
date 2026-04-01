@@ -9,7 +9,7 @@ metadata:
     primaryEnv: SWARMRECALL_API_KEY
     privacyPolicy: Learning data is stored on SwarmRecall servers (api.swarmrecall.ai). Data is scoped per agent and owner. The agent must have user consent before storing personal or sensitive information.
     dataHandling: All data is transmitted over HTTPS. Learnings are stored in PostgreSQL with pgvector embeddings. Data is tenant-isolated by owner ID and agent ID.
-version: 1.0.3
+version: 1.1.0
 author: swarmclawai
 homepage: https://www.swarmrecall.ai
 tags: [learnings, ai-agents, error-tracking, pattern-detection, persistence]
@@ -124,3 +124,10 @@ POST /api/v1/learnings/:id/link
 - The agent must have readwrite access to the pool's learnings module to write shared learnings.
 - Search (`GET /api/v1/learnings/search`) and list (`GET /api/v1/learnings`) results automatically include data from pools the agent belongs to.
 - Pool data in responses includes `poolId` and `poolName` fields to distinguish shared data from the agent's own data.
+
+## Dreaming Integration
+
+Learnings benefit from dream-time promotion:
+
+- **Promotion candidates**: The existing `GET /api/v1/learnings/promotions` endpoint surfaces patterns meeting promotion criteria (3+ recurrences, 2+ sessions, within 30 days). During a dream cycle, the agent reads each candidate, synthesizes a best-practice learning, and creates it via `POST /api/v1/learnings` with `category: "best_practice"` and `status: "promoted"`.
+- **Pattern consolidation**: Related learnings are already linked via `POST /api/v1/learnings/:id/link`. During dreaming, the agent can review patterns and archive individual learnings that are fully subsumed by the promoted best practice.

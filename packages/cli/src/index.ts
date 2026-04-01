@@ -325,4 +325,86 @@ pools
     output(result);
   });
 
+// --- Dream ---
+
+const dream = program.command('dream');
+
+dream
+  .command('start')
+  .description('Start a dream cycle')
+  .option('--ops <ops>', 'Comma-separated operations to run')
+  .option('--dry-run', 'Preview without making changes')
+  .action(async (opts: { ops?: string; dryRun?: boolean }) => {
+    const client = getClient();
+    const params: { operations?: string[]; dryRun?: boolean } = {};
+    if (opts.ops) params.operations = opts.ops.split(',').map((s) => s.trim());
+    if (opts.dryRun) params.dryRun = true;
+    const result = await client.dream.start(params);
+    output(result);
+  });
+
+dream
+  .command('status')
+  .description('Show last dream cycle results')
+  .action(async () => {
+    const client = getClient();
+    const result = await client.dream.list({ limit: 1 });
+    if (result.data.length === 0) {
+      console.log('No dream cycles found.');
+    } else {
+      output(result.data[0]);
+    }
+  });
+
+dream
+  .command('config')
+  .description('Show or update dream configuration')
+  .option('--enable', 'Enable auto-dreaming')
+  .option('--disable', 'Disable auto-dreaming')
+  .option('--interval <hours>', 'Set interval in hours')
+  .action(async (opts: { enable?: boolean; disable?: boolean; interval?: string }) => {
+    const client = getClient();
+    if (opts.enable || opts.disable || opts.interval) {
+      const params: { enabled?: boolean; intervalHours?: number } = {};
+      if (opts.enable) params.enabled = true;
+      if (opts.disable) params.enabled = false;
+      if (opts.interval) params.intervalHours = Number(opts.interval);
+      const result = await client.dream.updateConfig(params);
+      output(result);
+    } else {
+      const result = await client.dream.getConfig();
+      output(result);
+    }
+  });
+
+dream
+  .command('candidates <type>')
+  .description('List dream candidates (duplicates, stale, contradictions, unsummarized-sessions, duplicate-entities, unprocessed)')
+  .option('-l, --limit <n>', 'Limit results', '20')
+  .action(async (type: string, opts: { limit: string }) => {
+    const client = getClient();
+    const limit = Number(opts.limit);
+    switch (type) {
+      case 'duplicates': output(await client.dream.getDuplicates({ limit })); break;
+      case 'stale': output(await client.dream.getStale({ limit })); break;
+      case 'contradictions': output(await client.dream.getContradictions({ limit })); break;
+      case 'unsummarized-sessions': output(await client.dream.getUnsummarizedSessions({ limit })); break;
+      case 'duplicate-entities': output(await client.dream.getDuplicateEntities({ limit })); break;
+      case 'unprocessed': output(await client.dream.getUnprocessed({ limit })); break;
+      default: console.error(`Unknown candidate type: ${type}. Use: duplicates, stale, contradictions, unsummarized-sessions, duplicate-entities, unprocessed`);
+    }
+  });
+
+dream
+  .command('execute')
+  .description('Run Tier 1 server-side operations (decay, prune, orphan cleanup)')
+  .option('--ops <ops>', 'Comma-separated operations')
+  .action(async (opts: { ops?: string }) => {
+    const client = getClient();
+    const params: { operations?: string[] } = {};
+    if (opts.ops) params.operations = opts.ops.split(',').map((s) => s.trim());
+    const result = await client.dream.execute(params);
+    output(result);
+  });
+
 program.parse();

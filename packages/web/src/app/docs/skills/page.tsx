@@ -5,7 +5,7 @@ export default function SkillsPage() {
       <p className="text-[#888] text-sm mb-8">
         SwarmRecall skills are available on{' '}
         <a
-          href="https://clawhub.ai"
+          href="https://clawhub.ai/waydelyle/swarmrecall"
           target="_blank"
           rel="noopener noreferrer"
         >

@@ -54,6 +54,7 @@ export const API_KEY_SCOPES = [
   'learnings.read', 'learnings.write',
   'skills.read', 'skills.write',
   'pools.read', 'pools.write',
+  'dream.read', 'dream.write',
 ] as const;
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
@@ -73,3 +74,31 @@ export const RATE_LIMIT_REGISTER = 10;
 export const UNCLAIMED_MEMORY_LIMIT = 1000;
 export const UNCLAIMED_ENTITY_LIMIT = 500;
 export const UNCLAIMED_LEARNING_LIMIT = 500;
+
+// --- Dreaming ---
+
+export const DREAM_OPERATIONS = [
+  'deduplicate',
+  'summarize_sessions',
+  'decay_prune',
+  'consolidate_entities',
+  'promote_learnings',
+  'enrich_knowledge_graph',
+  'resolve_contradictions',
+] as const;
+export type DreamOperation = (typeof DREAM_OPERATIONS)[number];
+
+export const DREAM_STATUSES = ['pending', 'running', 'completed', 'failed'] as const;
+export type DreamStatus = (typeof DREAM_STATUSES)[number];
+
+export const DREAM_TRIGGERS = ['manual', 'scheduled', 'api'] as const;
+export type DreamTrigger = (typeof DREAM_TRIGGERS)[number];
+
+export const DREAM_SIMILARITY_THRESHOLD = 0.90;
+export const DREAM_DECAY_AGE_DAYS = 30;
+export const DREAM_DECAY_FACTOR = 0.95;
+export const DREAM_PRUNE_THRESHOLD = 0.05;
+export const DREAM_SESSION_DECAY = 0.15;
+export const DREAM_DEFAULT_INTERVAL_HOURS = 24;
+export const DREAM_BATCH_SIZE = 500;
+export const DREAM_ENTITY_SIMILARITY = 0.92;

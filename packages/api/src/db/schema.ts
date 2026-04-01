@@ -173,6 +173,7 @@ export const memories = pgTable(
     index('memories_owner_idx').on(t.ownerId),
     index('memories_category_idx').on(t.category),
     index('memories_pool_idx').on(t.poolId),
+    index('memories_archived_idx').on(t.archivedAt),
   ],
 );
 
@@ -198,6 +199,7 @@ export const entities = pgTable(
     index('entities_owner_idx').on(t.ownerId),
     index('entities_type_idx').on(t.type),
     index('entities_pool_idx').on(t.poolId),
+    index('entities_archived_idx').on(t.archivedAt),
   ],
 );
 
@@ -267,6 +269,7 @@ export const learnings = pgTable(
     index('learnings_category_idx').on(t.category),
     index('learnings_status_idx').on(t.status),
     index('learnings_pool_idx').on(t.poolId),
+    index('learnings_archived_idx').on(t.archivedAt),
   ],
 );
 
@@ -334,6 +337,53 @@ export const skillOverrides = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('skill_overrides_skill_idx').on(t.skillId)],
+);
+
+// --- Dreaming ---
+
+export const dreamCycles = pgTable(
+  'dream_cycles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    agentId: uuid('agent_id').references(() => agents.id),
+    poolId: uuid('pool_id').references(() => pools.id),
+    ownerId: uuid('owner_id').notNull().references(() => owners.id),
+    status: text('status').notNull().default('pending'),
+    operations: jsonb('operations').notNull().default([]),
+    results: jsonb('results'),
+    trigger: text('trigger').notNull().default('manual'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    error: text('error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('dream_cycles_agent_idx').on(t.agentId),
+    index('dream_cycles_owner_idx').on(t.ownerId),
+    index('dream_cycles_status_idx').on(t.status),
+  ],
+);
+
+export const dreamConfigs = pgTable(
+  'dream_configs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    agentId: uuid('agent_id').references(() => agents.id),
+    poolId: uuid('pool_id').references(() => pools.id),
+    ownerId: uuid('owner_id').notNull().references(() => owners.id),
+    enabled: text('enabled').notNull().default('true'),
+    intervalHours: integer('interval_hours').notNull().default(24),
+    operations: jsonb('operations').notNull().default([]),
+    thresholds: jsonb('thresholds').notNull().default({}),
+    lastDreamAt: timestamp('last_dream_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('dream_configs_agent_idx').on(t.agentId),
+    index('dream_configs_owner_idx').on(t.ownerId),
+    uniqueIndex('dream_configs_agent_owner_idx').on(t.agentId, t.ownerId),
+  ],
 );
 
 // --- Audit ---

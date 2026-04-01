@@ -1,7 +1,7 @@
 import type {
   MemoryCategory, LearningCategory, LearningPriority, LearningStatus,
   LearningArea, SkillStatus, AgentStatus, ApiKeyScope, EntityTypeName,
-  PoolAccessLevel,
+  PoolAccessLevel, DreamOperation, DreamStatus, DreamTrigger,
 } from './constants.js';
 
 // --- Core ---
@@ -274,4 +274,77 @@ export interface PaginatedResponse<T> {
 export interface SearchResult<T> {
   data: T;
   score: number;
+}
+
+// --- Dreaming ---
+
+export interface DreamCycle {
+  id: string;
+  agentId: string | null;
+  poolId: string | null;
+  ownerId: string;
+  status: DreamStatus;
+  operations: DreamOperation[];
+  results: DreamResults | null;
+  trigger: DreamTrigger;
+  startedAt: string | null;
+  completedAt: string | null;
+  error: string | null;
+  createdAt: string;
+}
+
+export interface DreamResults {
+  deduplicate?: {
+    clustersFound: number;
+    memoriesMerged: number;
+    memoriesArchived: number;
+  };
+  summarize_sessions?: {
+    sessionsProcessed: number;
+    summariesCreated: number;
+    memoriesDecayed: number;
+  };
+  decay_prune?: {
+    memoriesDecayed: number;
+    memoriesPruned: number;
+  };
+  consolidate_entities?: {
+    entitiesMerged: number;
+    relationsRemapped: number;
+    orphansRemoved: number;
+  };
+  promote_learnings?: {
+    patternsEvaluated: number;
+    learningsPromoted: number;
+  };
+  enrich_knowledge_graph?: {
+    memoriesProcessed: number;
+    entitiesLinked: number;
+    relationsCreated: number;
+  };
+  durationMs: number;
+}
+
+export interface DreamConfig {
+  id: string;
+  agentId: string | null;
+  poolId: string | null;
+  ownerId: string;
+  enabled: boolean;
+  intervalHours: number;
+  operations: DreamOperation[];
+  thresholds: Partial<DreamThresholds>;
+  lastDreamAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DreamThresholds {
+  similarityThreshold: number;
+  decayAgeDays: number;
+  decayFactor: number;
+  pruneThreshold: number;
+  sessionDecay: number;
+  entitySimilarity: number;
+  batchSize: number;
 }

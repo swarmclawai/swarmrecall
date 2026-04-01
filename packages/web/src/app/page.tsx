@@ -85,7 +85,7 @@ export default function HomePage() {
               </a>
             ))}
             <a
-              href="https://clawhub.ai"
+              href="https://clawhub.ai/waydelyle/swarmrecall"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-[#888] hover:text-[#E0E0E0] transition-colors font-mono"
@@ -305,7 +305,7 @@ export default function HomePage() {
                 Docs
               </Link>
               <a
-                href="https://clawhub.ai"
+                href="https://clawhub.ai/waydelyle/swarmrecall"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#888] hover:text-[#E0E0E0] transition-colors"

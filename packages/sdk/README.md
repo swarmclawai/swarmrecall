@@ -460,7 +460,7 @@ try {
 
 - [SwarmRecall Dashboard](https://swarmrecall.ai)
 - [API Documentation](https://docs.swarmrecall.ai)
-- [ClawHub Skills](https://clawhub.ai)
+- [SwarmRecall on ClawHub](https://clawhub.ai/waydelyle/swarmrecall)
 - [GitHub](https://github.com/swarmrecall/swarmrecall)
 
 ## License

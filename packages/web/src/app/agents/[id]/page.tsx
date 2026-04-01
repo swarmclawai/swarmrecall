@@ -27,6 +27,7 @@ const tabs = [
   { name: 'Learnings', href: 'learnings', description: 'Patterns and insights' },
   { name: 'Skills', href: 'skills', description: 'Installed capabilities' },
   { name: 'Pools', href: 'pools', description: 'Shared pool memberships' },
+  { name: 'Dream', href: 'dream', description: 'Memory consolidation and maintenance' },
 ];
 
 export default function AgentDetailPage() {

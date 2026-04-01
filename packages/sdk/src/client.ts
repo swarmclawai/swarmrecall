@@ -1,6 +1,9 @@
 import { SwarmRecallError, AuthenticationError, AuthorizationError, ValidationError, NotFoundError, RateLimitError } from './errors.js';
 import type {
   AgentSkill,
+  DreamCycle,
+  DreamConfig,
+  DreamResults,
   Entity,
   Learning,
   LearningPattern,
@@ -95,6 +98,7 @@ export class SwarmRecallClient {
   readonly learnings: LearningsOperations;
   readonly skills: SkillsOperations;
   readonly pools: PoolOperations;
+  readonly dream: DreamOperations;
 
   constructor(options: SwarmRecallClientOptions) {
     this.baseUrl = (options.baseUrl ?? 'https://api.swarmrecall.ai').replace(/\/+$/, '');
@@ -104,6 +108,7 @@ export class SwarmRecallClient {
     this.learnings = new LearningsOperations(this);
     this.skills = new SkillsOperations(this);
     this.pools = new PoolOperations(this);
+    this.dream = new DreamOperations(this);
   }
 
   /**
@@ -428,5 +433,172 @@ class PoolOperations {
 
   get(poolId: string): Promise<PoolDetail> {
     return this.client.request<PoolDetail>('GET', `/pools/${poolId}`);
+  }
+}
+
+// --- Dream ---
+
+export interface DuplicateCluster {
+  anchor: { id: string; content: string; importance: number };
+  members: Array<{ id: string; content: string; importance: number; similarity: number }>;
+}
+
+export interface DuplicateClusterResponse {
+  clusters: DuplicateCluster[];
+  totalClusters: number;
+  thresholdUsed: number;
+}
+
+export interface UnsummarizedSessionResponse {
+  sessions: Array<{ id: string; memoryCount: number; startedAt: string; endedAt: string }>;
+  totalSessions: number;
+}
+
+export interface EntityPairResponse {
+  pairs: Array<{
+    entity_a: { id: string; type: string; name: string; properties: Record<string, unknown> };
+    entity_b: { id: string; type: string; name: string; properties: Record<string, unknown> };
+    similarity: number;
+  }>;
+  totalPairs: number;
+  thresholdUsed: number;
+}
+
+export interface StaleMemoryResponse {
+  memories: Array<{ id: string; content: string; importance: number; createdAt: string; ageDays: number }>;
+  totalStale: number;
+  decayAgeDaysUsed: number;
+}
+
+export interface ContradictionPairResponse {
+  pairs: Array<{
+    memory_a: { id: string; content: string; createdAt: string };
+    memory_b: { id: string; content: string; createdAt: string };
+    similarity: number;
+    contentDivergence: number;
+  }>;
+  totalPairs: number;
+}
+
+export interface UnprocessedMemoryResponse {
+  memories: Array<{ id: string; content: string; createdAt: string }>;
+  totalUnprocessed: number;
+}
+
+export interface Tier1Results {
+  decay_prune: { memoriesDecayed: number; memoriesPruned: number };
+  consolidate_entities: { entitiesMerged: number; relationsRemapped: number; orphansRemoved: number };
+  durationMs: number;
+}
+
+class DreamOperations {
+  constructor(private client: SwarmRecallClient) {}
+
+  // Cycle management
+
+  start(params?: {
+    operations?: string[];
+    thresholds?: Record<string, number>;
+    dryRun?: boolean;
+  }): Promise<DreamCycle> {
+    return this.client.request<DreamCycle>('POST', '/dream', params);
+  }
+
+  get(id: string): Promise<DreamCycle> {
+    return this.client.request<DreamCycle>('GET', `/dream/${id}`);
+  }
+
+  list(params?: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<PaginatedResponse<DreamCycle>> {
+    return this.client.request<PaginatedResponse<DreamCycle>>(
+      'GET',
+      '/dream',
+      undefined,
+      params as Record<string, string>,
+    );
+  }
+
+  update(id: string, params: {
+    status?: string;
+    results?: Record<string, unknown>;
+    error?: string;
+  }): Promise<DreamCycle> {
+    return this.client.request<DreamCycle>('PATCH', `/dream/${id}`, params);
+  }
+
+  complete(id: string, results: DreamResults): Promise<DreamCycle> {
+    return this.update(id, { status: 'completed', results: results as unknown as Record<string, unknown> });
+  }
+
+  fail(id: string, error: string): Promise<DreamCycle> {
+    return this.update(id, { status: 'failed', error });
+  }
+
+  // Config
+
+  getConfig(): Promise<DreamConfig> {
+    return this.client.request<DreamConfig>('GET', '/dream/config');
+  }
+
+  updateConfig(params: {
+    enabled?: boolean;
+    intervalHours?: number;
+    operations?: string[];
+    thresholds?: Record<string, number>;
+  }): Promise<DreamConfig> {
+    return this.client.request<DreamConfig>('PATCH', '/dream/config', params);
+  }
+
+  // Candidates
+
+  getDuplicates(params?: { limit?: number }): Promise<DuplicateClusterResponse> {
+    return this.client.request<DuplicateClusterResponse>(
+      'GET', '/dream/candidates/duplicates', undefined,
+      params as Record<string, string>,
+    );
+  }
+
+  getUnsummarizedSessions(params?: { limit?: number }): Promise<UnsummarizedSessionResponse> {
+    return this.client.request<UnsummarizedSessionResponse>(
+      'GET', '/dream/candidates/unsummarized-sessions', undefined,
+      params as Record<string, string>,
+    );
+  }
+
+  getDuplicateEntities(params?: { limit?: number }): Promise<EntityPairResponse> {
+    return this.client.request<EntityPairResponse>(
+      'GET', '/dream/candidates/duplicate-entities', undefined,
+      params as Record<string, string>,
+    );
+  }
+
+  getStale(params?: { limit?: number }): Promise<StaleMemoryResponse> {
+    return this.client.request<StaleMemoryResponse>(
+      'GET', '/dream/candidates/stale', undefined,
+      params as Record<string, string>,
+    );
+  }
+
+  getContradictions(params?: { limit?: number }): Promise<ContradictionPairResponse> {
+    return this.client.request<ContradictionPairResponse>(
+      'GET', '/dream/candidates/contradictions', undefined,
+      params as Record<string, string>,
+    );
+  }
+
+  getUnprocessed(params?: { limit?: number }): Promise<UnprocessedMemoryResponse> {
+    return this.client.request<UnprocessedMemoryResponse>(
+      'GET', '/dream/candidates/unprocessed', undefined,
+      params as Record<string, string>,
+    );
+  }
+
+  // Tier 1 execution
+
+  execute(params?: { operations?: string[] }): Promise<Tier1Results> {
+    return this.client.request<Tier1Results>('POST', '/dream/execute', params);
   }
 }

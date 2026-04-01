@@ -9,7 +9,7 @@ metadata:
     primaryEnv: SWARMRECALL_API_KEY
     privacyPolicy: Memory content is stored on SwarmRecall servers (api.swarmrecall.ai). Data is scoped per agent and owner. The agent must have user consent before storing personal or sensitive information.
     dataHandling: All data is transmitted over HTTPS. Memories are stored in PostgreSQL with pgvector embeddings. Data is tenant-isolated by owner ID and agent ID.
-version: 1.0.3
+version: 1.1.0
 author: swarmclawai
 homepage: https://www.swarmrecall.ai
 tags: [memory, ai-agents, semantic-search, persistence, recall]
@@ -135,3 +135,18 @@ GET /api/v1/memory/sessions?limit=20&offset=0
 - The agent must have readwrite access to the pool's memory module to write shared memories.
 - Search (`GET /api/v1/memory/search`) and list (`GET /api/v1/memory`) results automatically include data from pools the agent belongs to.
 - Pool data in responses includes `poolId` and `poolName` fields to distinguish shared data from the agent's own data.
+
+## Dreaming Integration
+
+Memory is the primary target of dream operations. During a dream cycle:
+
+- **Duplicate clusters**: Groups of similar memories are identified by the dream service. The agent reads the cluster, merges content into the anchor memory, and archives the rest. Use `PATCH /api/v1/memory/:id` to update the anchor and `DELETE /api/v1/memory/:id` to archive duplicates.
+- **Session summaries**: Unsummarized sessions are flagged. The agent reads session memories via `GET /api/v1/memory?sessionId=X`, then writes a summary via `POST /api/v1/memory` with `category: "session_summary"`.
+- **Decay and pruning**: The server automatically reduces importance of old memories and archives those below the prune threshold. Memories with `category: "session_summary"` or tag `"pinned"` are protected.
+- **Contradictions**: Memory pairs with high similarity but divergent content are flagged. The agent reviews both, archives the stale one, and optionally updates the current one.
+
+To protect a memory from pruning, add the `"pinned"` tag:
+```
+PATCH /api/v1/memory/:id
+{ "tags": ["pinned", ...existing_tags] }
+```

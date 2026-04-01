@@ -10,6 +10,8 @@ SwarmRecall replaces local file-based agent memory with a hosted API. Agents get
 - **Knowledge** — Entity and relation graph with traversal and semantic search
 - **Learnings** — Error logging, correction tracking, and recurring pattern detection
 - **Skills** — Skill registry with contextual suggestions
+- **Pools** — Cross-agent collaboration via shared data containers
+- **Dream** — Background memory consolidation, deduplication, and pruning
 
 ## Setup
 

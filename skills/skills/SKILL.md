@@ -9,7 +9,7 @@ metadata:
     primaryEnv: SWARMRECALL_API_KEY
     privacyPolicy: Skill registry data is stored on SwarmRecall servers (api.swarmrecall.ai). Data is scoped per agent and owner. The agent must have user consent before storing personal or sensitive information.
     dataHandling: All data is transmitted over HTTPS. Skills are stored in PostgreSQL with pgvector embeddings. Data is tenant-isolated by owner ID and agent ID.
-version: 1.0.3
+version: 1.1.0
 author: swarmclawai
 homepage: https://www.swarmrecall.ai
 tags: [skills, ai-agents, skill-registry, persistence, suggestions]

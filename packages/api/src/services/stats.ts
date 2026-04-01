@@ -1,6 +1,6 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { agentSkills, agents, entities, learnings, memories } from '../db/schema.js';
+import { agentSkills, agents, dreamCycles, entities, learnings, memories } from '../db/schema.js';
 
 export async function getOwnerStats(ownerId: string) {
   const [agentCountRow, memoryCountRow, learningCountRow] = await Promise.all([
@@ -26,7 +26,7 @@ export async function getOwnerStats(ownerId: string) {
 }
 
 export async function getAgentStats(agentId: string, ownerId: string) {
-  const [memoryCountRow, knowledgeCountRow, learningCountRow, skillCountRow] = await Promise.all([
+  const [memoryCountRow, knowledgeCountRow, learningCountRow, skillCountRow, dreamCountRow] = await Promise.all([
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(memories)
@@ -61,6 +61,16 @@ export async function getAgentStats(agentId: string, ownerId: string) {
       .select({ count: sql<number>`count(*)::int` })
       .from(agentSkills)
       .where(and(eq(agentSkills.agentId, agentId), eq(agentSkills.ownerId, ownerId))),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(dreamCycles)
+      .where(
+        and(
+          eq(dreamCycles.agentId, agentId),
+          eq(dreamCycles.ownerId, ownerId),
+          eq(dreamCycles.status, 'completed'),
+        ),
+      ),
   ]);
 
   return {
@@ -68,6 +78,7 @@ export async function getAgentStats(agentId: string, ownerId: string) {
     knowledgeCount: knowledgeCountRow[0]?.count ?? 0,
     learningCount: learningCountRow[0]?.count ?? 0,
     skillCount: skillCountRow[0]?.count ?? 0,
+    dreamCount: dreamCountRow[0]?.count ?? 0,
   };
 }
 

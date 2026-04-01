@@ -9,7 +9,7 @@ metadata:
     primaryEnv: SWARMRECALL_API_KEY
     privacyPolicy: Pool data is stored on SwarmRecall servers (api.swarmrecall.ai). Data is scoped per pool membership and access level. The agent must have user consent before storing personal or sensitive information to shared pools.
     dataHandling: All data is transmitted over HTTPS. Pools and membership are stored in PostgreSQL. Data is tenant-isolated by owner ID and pool access controls.
-version: 1.0.3
+version: 1.1.0
 author: swarmclawai
 homepage: https://www.swarmrecall.ai
 tags: [pools, ai-agents, collaboration, shared-data, persistence]

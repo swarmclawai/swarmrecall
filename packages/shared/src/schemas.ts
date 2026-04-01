@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   MEMORY_CATEGORIES, LEARNING_CATEGORIES, LEARNING_PRIORITIES,
   LEARNING_STATUSES, LEARNING_AREAS, SKILL_STATUSES, API_KEY_SCOPES,
-  ENTITY_TYPES, POOL_ACCESS_LEVELS,
+  ENTITY_TYPES, POOL_ACCESS_LEVELS, DREAM_OPERATIONS, DREAM_STATUSES,
 } from './constants.js';
 
 // --- Pagination ---
@@ -246,3 +246,54 @@ export type PoolCreate = z.infer<typeof PoolCreateSchema>;
 export type PoolUpdate = z.infer<typeof PoolUpdateSchema>;
 export type PoolMemberAdd = z.infer<typeof PoolMemberAddSchema>;
 export type PoolMemberUpdate = z.infer<typeof PoolMemberUpdateSchema>;
+
+// --- Dreaming ---
+
+const DreamThresholdsSchema = z.object({
+  similarityThreshold: z.number().min(0.5).max(1).optional(),
+  decayAgeDays: z.number().int().min(1).max(365).optional(),
+  decayFactor: z.number().min(0).max(1).optional(),
+  pruneThreshold: z.number().min(0).max(1).optional(),
+  sessionDecay: z.number().min(0).max(1).optional(),
+  entitySimilarity: z.number().min(0.5).max(1).optional(),
+  batchSize: z.number().int().min(50).max(2000).optional(),
+});
+
+export const DreamTriggerSchema = z.object({
+  operations: z.array(z.enum(DREAM_OPERATIONS)).min(1).optional(),
+  thresholds: DreamThresholdsSchema.optional(),
+  dryRun: z.boolean().default(false),
+});
+
+export const DreamCycleUpdateSchema = z.object({
+  status: z.enum(DREAM_STATUSES).optional(),
+  results: z.record(z.unknown()).optional(),
+  error: z.string().max(5000).optional(),
+});
+
+export const DreamConfigUpdateSchema = z.object({
+  enabled: z.boolean().optional(),
+  intervalHours: z.number().int().min(1).max(168).optional(),
+  operations: z.array(z.enum(DREAM_OPERATIONS)).min(1).optional(),
+  thresholds: DreamThresholdsSchema.optional(),
+});
+
+export const DreamListSchema = PaginationSchema.extend({
+  status: z.enum(DREAM_STATUSES).optional(),
+  agentId: z.string().uuid().optional(),
+});
+
+export const DreamExecuteSchema = z.object({
+  operations: z.array(z.enum(DREAM_OPERATIONS)).min(1).optional(),
+});
+
+export const CandidateQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export type DreamTriggerInput = z.infer<typeof DreamTriggerSchema>;
+export type DreamCycleUpdate = z.infer<typeof DreamCycleUpdateSchema>;
+export type DreamConfigUpdate = z.infer<typeof DreamConfigUpdateSchema>;
+export type DreamList = z.infer<typeof DreamListSchema>;
+export type DreamExecuteInput = z.infer<typeof DreamExecuteSchema>;
+export type CandidateQuery = z.infer<typeof CandidateQuerySchema>;

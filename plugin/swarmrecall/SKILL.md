@@ -331,3 +331,60 @@ GET /api/v1/skills/suggest?context=<task-description>&limit=5
 - On skill install: call `POST /api/v1/skills` to register the skill with name, version, and source.
 - On "what can I do?": call `GET /api/v1/skills` to list installed capabilities.
 - On task context: call `GET /api/v1/skills/suggest?context=<description>` for relevant skill recommendations.
+
+---
+
+## Module 5: Shared Pools
+
+Named shared data containers for cross-agent collaboration.
+
+### Endpoints
+
+#### List pools
+```
+GET /api/v1/pools
+```
+
+#### Get pool details
+```
+GET /api/v1/pools/:id
+```
+
+### Behavior
+
+- To share data across agents, include `"poolId": "<uuid>"` in any create request for memory, knowledge, learnings, or skills.
+- The agent must have the appropriate access level for the pool and module.
+- Call `GET /api/v1/pools` on session start to see available pools.
+
+---
+
+## Module 6: Dreaming
+
+Background memory consolidation — deduplication, pruning, and session summarization.
+
+### Endpoints
+
+#### Dream cycle management
+```
+POST /api/v1/dream              — Start a dream cycle
+GET  /api/v1/dream              — List dream cycles
+PATCH /api/v1/dream/:id         — Update cycle (report results, complete/fail)
+GET  /api/v1/dream/config       — Get dream config
+PATCH /api/v1/dream/config      — Update dream config
+POST /api/v1/dream/execute      — Run server-side ops (decay, prune)
+```
+
+#### Candidate primitives
+```
+GET /api/v1/dream/candidates/duplicates
+GET /api/v1/dream/candidates/unsummarized-sessions
+GET /api/v1/dream/candidates/stale
+GET /api/v1/dream/candidates/contradictions
+```
+
+### Behavior
+
+1. Start a dream cycle: `POST /api/v1/dream`
+2. Run server-side ops: `POST /api/v1/dream/execute`
+3. Fetch candidates, reason about them, act using existing endpoints
+4. Complete the cycle: `PATCH /api/v1/dream/:cycleId` with results

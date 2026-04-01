@@ -15,6 +15,7 @@ import apikeysRouter from './routes/apikeys.js';
 import registerRouter from './routes/register.js';
 import claimRouter from './routes/claim.js';
 import exportRouter from './routes/export.js';
+import dreamRouter from './routes/dream.js';
 import statsRouter from './routes/stats.js';
 import poolsRouter from './routes/pools.js';
 import agentPoolsRouter from './routes/agentPools.js';
@@ -23,6 +24,7 @@ import { rateLimit } from './middleware/rateLimit.js';
 import { poolCacheMiddleware } from './middleware/poolCache.js';
 import { RATE_LIMIT_REGISTER } from '@swarmrecall/shared';
 import { ensureIndexes } from './services/search.js';
+import { startDreamScheduler } from './jobs/dreamScheduler.js';
 import { connectRedis } from './lib/redis.js';
 import { initEmbeddings } from './lib/embeddings.js';
 
@@ -52,6 +54,7 @@ export function createApp() {
   app.route('/api/v1/learnings', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.use('*', poolCacheMiddleware); r.route('/', learningsRouter); return r; })());
   app.route('/api/v1/skills', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.use('*', poolCacheMiddleware); r.route('/', skillsRouter); return r; })());
   app.route('/api/v1/export', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', exportRouter); return r; })());
+  app.route('/api/v1/dream', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.use('*', poolCacheMiddleware); r.route('/', dreamRouter); return r; })());
   app.route('/api/v1/pools', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', agentPoolsRouter); return r; })());
 
   // Dashboard routes (Firebase auth + rate limiting)
@@ -85,6 +88,7 @@ async function start() {
   await connectRedis();
   await ensureIndexes();
   initEmbeddings().catch(() => console.warn('Embedding model load deferred'));
+  startDreamScheduler();
   serve({ fetch: app.fetch, port });
   console.log(`SwarmRecall API running on port ${port}`);
 }
