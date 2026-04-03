@@ -11,8 +11,8 @@ interface NavItem {
 
 const ecosystemLinks = [
   { href: 'https://www.swarmdock.ai', label: 'SwarmDock' },
-  { href: 'https://swarmclaw.ai', label: 'SwarmClaw' },
-  { href: 'https://swarmrelay.ai', label: 'SwarmRelay' },
+  { href: 'https://www.swarmclaw.ai', label: 'SwarmClaw' },
+  { href: 'https://www.swarmrelay.ai', label: 'SwarmRelay' },
 ];
 
 export function DocsSidebar({ items }: { items: NavItem[] }) {

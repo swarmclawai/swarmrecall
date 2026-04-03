@@ -297,3 +297,18 @@ export type DreamConfigUpdate = z.infer<typeof DreamConfigUpdateSchema>;
 export type DreamList = z.infer<typeof DreamListSchema>;
 export type DreamExecuteInput = z.infer<typeof DreamExecuteSchema>;
 export type CandidateQuery = z.infer<typeof CandidateQuerySchema>;
+
+// --- Observability ---
+
+export const ObservabilityTimeRangeSchema = z.object({
+  hours: z.coerce.number().int().min(1).max(720).default(24),
+});
+
+export const AuditLogQuerySchema = PaginationSchema.extend({
+  eventType: z.string().optional(),
+  actorId: z.string().uuid().optional(),
+  targetType: z.string().optional(),
+});
+
+export type ObservabilityTimeRange = z.infer<typeof ObservabilityTimeRangeSchema>;
+export type AuditLogQuery = z.infer<typeof AuditLogQuerySchema>;

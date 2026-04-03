@@ -22,9 +22,11 @@ import agentPoolsRouter from './routes/agentPools.js';
 import { apiKeyAuth, firebaseAuth } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { poolCacheMiddleware } from './middleware/poolCache.js';
+import { metricsMiddleware } from './middleware/metrics.js';
 import { RATE_LIMIT_REGISTER } from '@swarmrecall/shared';
 import { ensureIndexes } from './services/search.js';
 import { startDreamScheduler } from './jobs/dreamScheduler.js';
+import observabilityRouter from './routes/observability.js';
 import { connectRedis } from './lib/redis.js';
 import { initEmbeddings } from './lib/embeddings.js';
 
@@ -38,6 +40,7 @@ export function createApp() {
       origin: (process.env.CORS_ORIGINS ?? 'http://localhost:3400').split(','),
     }),
   );
+  app.use('*', metricsMiddleware);
 
   // Health (no auth)
   app.route('/api/v1/health', health);
@@ -63,6 +66,7 @@ export function createApp() {
   app.route('/api/v1/api-keys', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', apikeysRouter); return r; })());
   app.route('/api/v1/stats', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', statsRouter); return r; })());
   app.route('/api/v1/manage/pools', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', poolsRouter); return r; })());
+  app.route('/api/v1/observability', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', observabilityRouter); return r; })());
 
   // Global error handler
   app.onError((err, c) => {

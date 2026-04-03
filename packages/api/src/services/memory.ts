@@ -2,7 +2,7 @@ import { eq, and, or, isNull, inArray, desc, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { memories, memorySessions } from '../db/schema.js';
 import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
-import { searchIndex } from './search.js';
+import { searchIndex, recordSearchMetric } from './search.js';
 import { logAuditEvent } from './audit.js';
 import {
   getReadablePoolIds,
@@ -209,6 +209,7 @@ export async function searchMemories(
 
   if (embedding.length > 0) {
     const vectorStr = `[${embedding.join(',')}]`;
+    const vStart = performance.now();
     vectorResults = await db
       .select({
         ...PUBLIC_MEMORY_SELECT,
@@ -225,6 +226,14 @@ export async function searchMemories(
       )
       .orderBy(sql`${memories.embedding} <=> ${vectorStr}`)
       .limit(limit);
+    recordSearchMetric({
+      method: 'vector',
+      indexName: 'memories',
+      resultCount: vectorResults.length,
+      durationMs: performance.now() - vStart,
+      agentId,
+      ownerId,
+    });
   }
 
   const textResults = await searchIndex.searchDocuments(

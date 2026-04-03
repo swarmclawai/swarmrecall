@@ -406,3 +406,43 @@ export const auditLog = pgTable(
     index('audit_log_event_type_idx').on(t.eventType),
   ],
 );
+
+// --- Observability Metrics ---
+
+export const apiMetrics = pgTable(
+  'api_metrics',
+  {
+    id: serial('id').primaryKey(),
+    method: text('method').notNull(),
+    path: text('path').notNull(),
+    statusCode: integer('status_code').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    agentId: uuid('agent_id'),
+    ownerId: uuid('owner_id'),
+    timestamp: timestamp('timestamp', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('api_metrics_timestamp_idx').on(t.timestamp),
+    index('api_metrics_owner_idx').on(t.ownerId),
+    index('api_metrics_path_idx').on(t.path),
+  ],
+);
+
+export const searchMetrics = pgTable(
+  'search_metrics',
+  {
+    id: serial('id').primaryKey(),
+    method: text('method').notNull(),
+    indexName: text('index_name').notNull(),
+    resultCount: integer('result_count').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    agentId: uuid('agent_id'),
+    ownerId: uuid('owner_id'),
+    timestamp: timestamp('timestamp', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('search_metrics_timestamp_idx').on(t.timestamp),
+    index('search_metrics_owner_idx').on(t.ownerId),
+    index('search_metrics_method_idx').on(t.method),
+  ],
+);

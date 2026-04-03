@@ -2,7 +2,7 @@ import { eq, and, or, isNull, inArray, desc, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { entities, relations, entityTypes } from '../db/schema.js';
 import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
-import { searchIndex } from './search.js';
+import { searchIndex, recordSearchMetric } from './search.js';
 import { logAuditEvent } from './audit.js';
 import {
   getReadablePoolIds,
@@ -623,6 +623,7 @@ export async function searchEntities(
 
   if (embedding.length > 0) {
     const vectorStr = `[${embedding.join(',')}]`;
+    const vStart = performance.now();
     vectorResults = await db
       .select({
         ...PUBLIC_ENTITY_SELECT,
@@ -639,6 +640,14 @@ export async function searchEntities(
       )
       .orderBy(sql`${entities.embedding} <=> ${vectorStr}`)
       .limit(limit);
+    recordSearchMetric({
+      method: 'vector',
+      indexName: 'entities',
+      resultCount: vectorResults.length,
+      durationMs: performance.now() - vStart,
+      agentId,
+      ownerId,
+    });
   }
 
   const textResults = await searchIndex.searchDocuments(

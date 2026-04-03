@@ -17,7 +17,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://swarmrecall.ai'),
+  metadataBase: new URL('https://www.swarmrecall.ai'),
   title: 'SwarmRecall — Memory for AI Agents',
   description:
     'Persistent memory, knowledge, learnings, and skills for AI agents. Your agents remember everything.',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     title: 'SwarmRecall',
     description:
       'Persistent memory, knowledge, learnings, and skills for AI agents',
-    url: 'https://swarmrecall.ai',
+    url: 'https://www.swarmrecall.ai',
     siteName: 'SwarmRecall',
     type: 'website',
   },

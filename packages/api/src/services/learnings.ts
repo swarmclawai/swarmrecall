@@ -2,7 +2,7 @@ import { eq, and, or, desc, sql, gte, isNull, inArray, SQL } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { learnings, learningPatterns } from '../db/schema.js';
 import { generateEmbedding, generateQueryEmbedding } from '../lib/embeddings.js';
-import { searchIndex } from './search.js';
+import { searchIndex, recordSearchMetric } from './search.js';
 import { logAuditEvent } from './audit.js';
 import {
   getReadablePoolIds,
@@ -447,6 +447,7 @@ export async function searchLearnings(
   let vectorResults: Array<PublicLearningRow & { score: number }> = [];
   if (embedding.length > 0) {
     const vectorStr = vectorToSql(embedding);
+    const vStart = performance.now();
     vectorResults = await db
       .select({
         ...PUBLIC_LEARNING_SELECT,
@@ -463,6 +464,14 @@ export async function searchLearnings(
       )
       .orderBy(sql`1 - (${learnings.embedding} <=> ${sql.raw(`'${vectorStr}'::vector`)}) DESC`)
       .limit(limit);
+    recordSearchMetric({
+      method: 'vector',
+      indexName: 'learnings',
+      resultCount: vectorResults.length,
+      durationMs: performance.now() - vStart,
+      agentId,
+      ownerId,
+    });
   }
 
   const textResults = await searchIndex.searchDocuments(

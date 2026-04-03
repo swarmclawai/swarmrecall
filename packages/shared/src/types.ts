@@ -348,3 +348,55 @@ export interface DreamThresholds {
   entitySimilarity: number;
   batchSize: number;
 }
+
+// --- Observability ---
+
+export interface HealthStatus {
+  status: 'ok' | 'degraded' | 'down';
+  timestamp: string;
+  services: {
+    database: { ok: boolean; latencyMs: number };
+    meilisearch: { ok: boolean; latencyMs: number };
+    pgvector: { ok: boolean };
+    redis: { ok: boolean };
+  };
+}
+
+export interface UsageMetrics {
+  series: Array<{
+    date: string;
+    memories: number;
+    entities: number;
+    learnings: number;
+    skills: number;
+  }>;
+}
+
+export interface ApiMetricsSummary {
+  totalRequests: number;
+  avgDurationMs: number;
+  errorRate: number;
+  p95DurationMs: number;
+  byStatus: Array<{ statusCode: number; count: number }>;
+  byPath: Array<{ path: string; count: number; avgDurationMs: number }>;
+  series: Array<{ hour: string; count: number; avgDurationMs: number }>;
+}
+
+export interface SearchMetricsSummary {
+  totalSearches: number;
+  avgDurationMs: number;
+  avgResultCount: number;
+  byMethod: Array<{ method: string; count: number; avgDurationMs: number; avgResultCount: number }>;
+  byIndex: Array<{ indexName: string; count: number; avgDurationMs: number }>;
+  series: Array<{ hour: string; count: number; avgDurationMs: number }>;
+}
+
+export interface StorageBreakdown {
+  memories: { count: number; estimatedSizeMb: number };
+  entities: { count: number; estimatedSizeMb: number };
+  relations: { count: number; estimatedSizeMb: number };
+  learnings: { count: number; estimatedSizeMb: number };
+  skills: { count: number; estimatedSizeMb: number };
+  auditLog: { count: number; estimatedSizeMb: number };
+  totalEstimatedSizeMb: number;
+}

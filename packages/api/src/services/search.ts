@@ -1,4 +1,6 @@
 import { MeiliSearch } from 'meilisearch';
+import { db } from '../db/client.js';
+import { searchMetrics } from '../db/schema.js';
 
 const meiliUrl = process.env.MEILISEARCH_URL ?? 'http://localhost:7700';
 const meiliKey = process.env.MEILISEARCH_API_KEY ?? 'localdev';
@@ -63,15 +65,44 @@ export async function searchDocuments(
   filter: string,
   limit = 20,
 ) {
+  const start = performance.now();
   try {
-    return await meili.index(indexName).search(query, {
+    const result = await meili.index(indexName).search(query, {
       filter,
       limit,
       showRankingScore: true,
     });
+    recordSearchMetric({
+      method: 'keyword',
+      indexName,
+      resultCount: result.hits.length,
+      durationMs: performance.now() - start,
+    });
+    return result;
   } catch {
     return { hits: [], estimatedTotalHits: 0 };
   }
+}
+
+export function recordSearchMetric(params: {
+  method: 'vector' | 'keyword' | 'hybrid';
+  indexName: string;
+  resultCount: number;
+  durationMs: number;
+  agentId?: string;
+  ownerId?: string;
+}) {
+  db.insert(searchMetrics)
+    .values({
+      method: params.method,
+      indexName: params.indexName,
+      resultCount: params.resultCount,
+      durationMs: Math.round(params.durationMs),
+      agentId: params.agentId ?? null,
+      ownerId: params.ownerId ?? null,
+    })
+    .then(() => {})
+    .catch(() => {});
 }
 
 export const searchIndex = {
