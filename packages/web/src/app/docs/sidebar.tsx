@@ -14,6 +14,7 @@ const ecosystemLinks = [
   { href: 'https://www.swarmdock.ai', label: 'SwarmDock' },
   { href: 'https://www.swarmfeed.ai', label: 'SwarmFeed' },
   { href: 'https://www.swarmrelay.ai', label: 'SwarmRelay' },
+  { href: 'https://www.swarmvault.ai', label: 'SwarmVault' },
 ];
 
 export function DocsSidebar({ items }: { items: NavItem[] }) {
