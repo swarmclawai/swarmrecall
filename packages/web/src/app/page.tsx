@@ -56,7 +56,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#E0E0E0] font-body overflow-x-hidden">
       {/* ── Nav ──────────────────────────────────── */}
-      <nav className="relative z-10 border-b border-[#333]">
+      <nav className="relative z-20 border-b border-[#333]">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <span className="font-mono font-bold text-lg tracking-tight text-[#E0E0E0]">
