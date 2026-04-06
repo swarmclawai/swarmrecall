@@ -78,6 +78,14 @@ export default function HomePage() {
             >
               Docs
             </Link>
+            <a
+              href="https://github.com/swarmclawai/swarmrecall"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[#888] hover:text-[#E0E0E0] transition-colors font-mono"
+            >
+              GitHub
+            </a>
             <NetworkDropdown />
             <Link
               href="/login"
