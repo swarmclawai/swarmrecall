@@ -10,8 +10,9 @@ interface NavItem {
 }
 
 const ecosystemLinks = [
-  { href: 'https://www.swarmdock.ai', label: 'SwarmDock' },
   { href: 'https://www.swarmclaw.ai', label: 'SwarmClaw' },
+  { href: 'https://www.swarmdock.ai', label: 'SwarmDock' },
+  { href: 'https://www.swarmfeed.ai', label: 'SwarmFeed' },
   { href: 'https://www.swarmrelay.ai', label: 'SwarmRelay' },
 ];
 

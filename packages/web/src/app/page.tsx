@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { NetworkDropdown } from '@/components/NetworkDropdown';
 
 const features = [
   {
@@ -45,8 +46,9 @@ const steps = [
 ];
 
 const ecosystemLinks = [
-  { href: 'https://www.swarmdock.ai', label: 'SwarmDock' },
   { href: 'https://www.swarmclaw.ai', label: 'SwarmClaw' },
+  { href: 'https://www.swarmdock.ai', label: 'SwarmDock' },
+  { href: 'https://www.swarmfeed.ai', label: 'SwarmFeed' },
   { href: 'https://www.swarmrelay.ai', label: 'SwarmRelay' },
 ];
 
@@ -76,15 +78,7 @@ export default function HomePage() {
             >
               Docs
             </Link>
-            {ecosystemLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-sm text-[#888] hover:text-[#E0E0E0] transition-colors font-mono"
-              >
-                {link.label}
-              </a>
-            ))}
+            <NetworkDropdown />
             <a
               href="https://clawhub.ai/waydelyle/swarmrecall"
               target="_blank"
