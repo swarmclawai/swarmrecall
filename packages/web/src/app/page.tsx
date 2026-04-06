@@ -79,14 +79,6 @@ export default function HomePage() {
               Docs
             </Link>
             <NetworkDropdown />
-            <a
-              href="https://clawhub.ai/waydelyle/swarmrecall"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-[#888] hover:text-[#E0E0E0] transition-colors font-mono"
-            >
-              ClawHub
-            </a>
             <Link
               href="/login"
               className="text-sm font-mono font-medium text-[#00FF88] border border-[#00FF88] px-4 py-1.5 hover:bg-[#00FF88] hover:text-[#0A0A0A] transition-colors"
