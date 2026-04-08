@@ -58,6 +58,16 @@ pnpm dev
 - **Frontend**: Next.js 15 + Tailwind CSS + Radix UI
 - **Build**: Turborepo + pnpm workspaces
 
+## ClawHub Skill
+
+Install the SwarmRecall skill for your [OpenClaw](https://openclaw.ai) agents:
+
+```bash
+clawhub install swarmrecall
+```
+
+[Browse on ClawHub](https://clawhub.ai/skills/swarmrecall)
+
 ## SDK Usage
 
 ```typescript
