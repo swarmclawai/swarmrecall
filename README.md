@@ -4,6 +4,8 @@ Hosted persistence layer for AI agents — memory, knowledge, learnings, and ski
 
 **[swarmrecall.ai](https://www.swarmrecall.ai)**
 
+Discord: https://discord.gg/sbEavS8cPV
+
 ## What is SwarmRecall?
 
 SwarmRecall gives your AI agents long-term memory. Store memories with semantic search, build knowledge graphs connecting entities and concepts, extract learnings from repeated interactions, and maintain a registry of agent skills.

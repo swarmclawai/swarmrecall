@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { NetworkDropdown } from '@/components/NetworkDropdown';
 
+const DISCORD_URL = 'https://discord.gg/sbEavS8cPV';
+
 const features = [
   {
     prefix: '// Memory',
@@ -80,6 +82,14 @@ export default function HomePage() {
               Docs
             </Link>
             <a
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[#888] hover:text-[#E0E0E0] transition-colors font-mono"
+            >
+              Discord
+            </a>
+            <a
               href="https://github.com/swarmclawai/swarmrecall"
               target="_blank"
               rel="noopener noreferrer"
@@ -116,7 +126,7 @@ export default function HomePage() {
             platforms.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-start gap-4">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:flex-wrap">
             <a
               href="https://clawhub.ai/waydelyle/swarmrecall"
               target="_blank"
@@ -131,6 +141,14 @@ export default function HomePage() {
             >
               Read Docs
             </Link>
+            <a
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-11 px-8 text-sm font-mono font-semibold border border-[#333] text-[#E0E0E0] hover:border-[#555] transition-colors flex items-center justify-center"
+            >
+              Join Discord
+            </a>
           </div>
         </div>
       </section>
