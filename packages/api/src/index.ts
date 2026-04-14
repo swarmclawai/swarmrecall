@@ -1,3 +1,4 @@
+import './lib/loadEnv.js';
 import { serve } from '@hono/node-server';
 import { fileURLToPath } from 'node:url';
 import { Hono } from 'hono';
@@ -19,6 +20,7 @@ import dreamRouter from './routes/dream.js';
 import statsRouter from './routes/stats.js';
 import poolsRouter from './routes/pools.js';
 import agentPoolsRouter from './routes/agentPools.js';
+import mcpRouter from './routes/mcp.js';
 import { apiKeyAuth, firebaseAuth } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { poolCacheMiddleware } from './middleware/poolCache.js';
@@ -59,6 +61,12 @@ export function createApp() {
   app.route('/api/v1/export', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', exportRouter); return r; })());
   app.route('/api/v1/dream', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.use('*', poolCacheMiddleware); r.route('/', dreamRouter); return r; })());
   app.route('/api/v1/pools', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', agentPoolsRouter); return r; })());
+
+  // Remote MCP server — stdio-equivalent surface over Streamable HTTP.
+  // Authed via API key; the handler builds a per-request SwarmRecallClient
+  // that loops back through this same API so every tool reuses existing routes.
+  // Mounted at /mcp (not /api/v1/mcp) so MCP client configs stay clean.
+  app.route('/mcp', (() => { const r = new Hono(); r.use('*', apiKeyAuth); r.use('*', rateLimit()); r.route('/', mcpRouter); return r; })());
 
   // Dashboard routes (Firebase auth + rate limiting)
   app.route('/api/v1/owners', (() => { const r = new Hono(); r.use('*', firebaseAuth); r.use('*', rateLimit()); r.route('/', ownersRouter); return r; })());

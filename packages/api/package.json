@@ -1,6 +1,6 @@
 {
   "name": "@swarmrecall/api",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -17,6 +17,8 @@
   "dependencies": {
     "@hono/node-server": "^1.14.0",
     "@huggingface/transformers": "^4.0.0",
+    "@swarmrecall/mcp": "workspace:*",
+    "@swarmrecall/sdk": "workspace:*",
     "@swarmrecall/shared": "workspace:*",
     "@upstash/redis": "^1.37.0",
     "drizzle-orm": "^0.39.0",

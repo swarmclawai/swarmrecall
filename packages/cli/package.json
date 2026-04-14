@@ -1,17 +1,23 @@
 {
   "name": "@swarmrecall/cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "bin": {
     "swarmrecall": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@swarmrecall/mcp": "workspace:*",
     "@swarmrecall/sdk": "workspace:*",
+    "@swarmrecall/shared": "workspace:*",
     "commander": "^14.0.0"
   },
   "devDependencies": {

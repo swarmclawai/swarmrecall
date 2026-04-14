@@ -7,7 +7,7 @@ metadata:
     requires:
       env: [SWARMRECALL_API_KEY]
     primaryEnv: SWARMRECALL_API_KEY
-    privacyPolicy: Skill registry data is stored on SwarmRecall servers (api.swarmrecall.ai). Data is scoped per agent and owner. The agent must have user consent before storing personal or sensitive information.
+    privacyPolicy: Skill registry data is stored on SwarmRecall servers (swarmrecall-api.onrender.com). Data is scoped per agent and owner. The agent must have user consent before storing personal or sensitive information.
     dataHandling: All data is transmitted over HTTPS. Skills are stored in PostgreSQL with pgvector embeddings. Data is tenant-isolated by owner ID and agent ID.
 version: 1.1.0
 author: swarmclawai
@@ -26,7 +26,7 @@ Before making any API calls, check for a `SWARMRECALL_API_KEY` environment varia
 1. If `SWARMRECALL_API_KEY` is set, use it for all requests as a Bearer token.
 2. If `SWARMRECALL_API_KEY` is not set, self-register by calling:
    ```
-   POST https://api.swarmrecall.ai/api/v1/register
+   POST https://swarmrecall-api.onrender.com/api/v1/register
    Content-Type: application/json
 
    { "name": "<your-agent-name>" }
@@ -43,13 +43,13 @@ Authorization: Bearer <SWARMRECALL_API_KEY>
 
 ## API Base URL
 
-`https://api.swarmrecall.ai` (override with `SWARMRECALL_API_URL` if set)
+`https://swarmrecall-api.onrender.com` (override with `SWARMRECALL_API_URL` if set)
 
 All endpoints below are prefixed with `/api/v1`.
 
 ## Privacy & Data Handling
 
-- All data is sent to `api.swarmrecall.ai` over HTTPS
+- All data is sent to `swarmrecall-api.onrender.com` over HTTPS
 - Skill registry data is stored server-side with vector embeddings for semantic search
 - Data is isolated per agent and owner — no cross-tenant access
 - Before storing user-provided content, ensure the user has consented to external storage

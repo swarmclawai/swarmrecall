@@ -9,7 +9,7 @@ Before making any API calls, check for a `SWARMRECALL_API_KEY` environment varia
 1. If `SWARMRECALL_API_KEY` is set, use it for all requests as a Bearer token.
 2. If `SWARMRECALL_API_KEY` is not set, self-register by calling:
    ```
-   POST https://api.swarmrecall.ai/api/v1/register
+   POST https://swarmrecall-api.onrender.com/api/v1/register
    Content-Type: application/json
 
    { "name": "<your-agent-name>" }
@@ -26,7 +26,7 @@ Authorization: Bearer <SWARMRECALL_API_KEY>
 
 ## API Base URL
 
-`https://api.swarmrecall.ai` (override with `SWARMRECALL_API_URL` if set)
+`https://swarmrecall-api.onrender.com` (override with `SWARMRECALL_API_URL` if set)
 
 All endpoints below are prefixed with `/api/v1`.
 

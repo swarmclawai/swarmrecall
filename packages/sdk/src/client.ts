@@ -101,7 +101,7 @@ export class SwarmRecallClient {
   readonly dream: DreamOperations;
 
   constructor(options: SwarmRecallClientOptions) {
-    this.baseUrl = (options.baseUrl ?? 'https://api.swarmrecall.ai').replace(/\/+$/, '');
+    this.baseUrl = (options.baseUrl ?? 'https://swarmrecall-api.onrender.com').replace(/\/+$/, '');
     this.apiKey = options.apiKey;
     this.memory = new MemoryOperations(this);
     this.knowledge = new KnowledgeOperations(this);
@@ -117,7 +117,7 @@ export class SwarmRecallClient {
    * the agent to a user account.
    */
   static async register(options?: RegisterOptions): Promise<RegisterResponse> {
-    const url = (options?.baseUrl ?? 'https://api.swarmrecall.ai').replace(/\/+$/, '');
+    const url = (options?.baseUrl ?? 'https://swarmrecall-api.onrender.com').replace(/\/+$/, '');
     const res = await fetch(`${url}/api/v1/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

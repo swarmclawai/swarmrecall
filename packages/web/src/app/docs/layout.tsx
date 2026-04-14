@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 const NAV_ITEMS = [
   { title: 'Overview', slug: '' },
   { title: 'Getting Started', slug: 'getting-started' },
+  { title: 'MCP Server', slug: 'mcp' },
   { title: 'API Reference', slug: 'api-reference' },
   { title: 'SDK', slug: 'sdk' },
   { title: 'Skills', slug: 'skills' },

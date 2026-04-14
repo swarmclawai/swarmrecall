@@ -1,0 +1,60 @@
+{
+  "name": "@swarmrecall/mcp",
+  "version": "0.3.0",
+  "description": "Model Context Protocol server for SwarmRecall — exposes memory, knowledge graph, learnings, skills, pools, and dream tools to any MCP-compatible agent over stdio",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./http": {
+      "import": "./dist/http.js",
+      "types": "./dist/http.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "node --test --import tsx test/**/*.test.ts"
+  },
+  "keywords": [
+    "swarmrecall",
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "memory",
+    "knowledge-graph",
+    "learnings",
+    "skills",
+    "llm"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/swarmclawai/swarmrecall.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://www.swarmrecall.ai/docs/mcp",
+  "bugs": {
+    "url": "https://github.com/swarmclawai/swarmrecall/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@swarmrecall/sdk": "workspace:*",
+    "@swarmrecall/shared": "workspace:*",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}

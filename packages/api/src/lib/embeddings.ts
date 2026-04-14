@@ -1,6 +1,7 @@
 const EMBEDDING_DIM = 1536;
 
 let extractor: unknown = null;
+let embeddingWarningLogged = false;
 
 export async function initEmbeddings(): Promise<void> {
   if (extractor) return;
@@ -25,20 +26,55 @@ function padTo1536(arr: number[]): number[] {
   return padded;
 }
 
+function logEmbeddingWarning(error: unknown) {
+  if (embeddingWarningLogged) {
+    return;
+  }
+
+  embeddingWarningLogged = true;
+  console.warn('Embedding generation unavailable:', (error as Error).message);
+}
+
+export async function runEmbeddingExtractor(
+  extract: ((input: string, options: { pooling: 'mean'; normalize: true }) => Promise<{ data: Float32Array }>) | null,
+  prefix: 'search_document' | 'search_query',
+  text: string,
+): Promise<number[]> {
+  if (!extract) {
+    return [];
+  }
+
+  try {
+    const output = await extract(`${prefix}: ${text}`, { pooling: 'mean', normalize: true });
+    return padTo1536(Array.from(output.data));
+  } catch (error) {
+    logEmbeddingWarning(error);
+    return [];
+  }
+}
+
+async function getExtractor() {
+  if (extractor) {
+    return extractor as (input: string, options: { pooling: 'mean'; normalize: true }) => Promise<{ data: Float32Array }>;
+  }
+
+  try {
+    await initEmbeddings();
+  } catch (error) {
+    logEmbeddingWarning(error);
+    extractor = null;
+    return null;
+  }
+
+  return extractor as (input: string, options: { pooling: 'mean'; normalize: true }) => Promise<{ data: Float32Array }>;
+}
+
 export async function generateEmbedding(text: string): Promise<number[]> {
-  if (!extractor) await initEmbeddings();
-  const prefixed = `search_document: ${text}`;
-  const output = await (extractor as Function)(prefixed, { pooling: 'mean', normalize: true });
-  const data = (output as { data: Float32Array }).data;
-  return padTo1536(Array.from(data));
+  return runEmbeddingExtractor(await getExtractor(), 'search_document', text);
 }
 
 export async function generateQueryEmbedding(text: string): Promise<number[]> {
-  if (!extractor) await initEmbeddings();
-  const prefixed = `search_query: ${text}`;
-  const output = await (extractor as Function)(prefixed, { pooling: 'mean', normalize: true });
-  const data = (output as { data: Float32Array }).data;
-  return padTo1536(Array.from(data));
+  return runEmbeddingExtractor(await getExtractor(), 'search_query', text);
 }
 
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {

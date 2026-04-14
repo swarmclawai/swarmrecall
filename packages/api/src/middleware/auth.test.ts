@@ -1,7 +1,36 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Hono } from 'hono';
-import { requireScope } from './auth.js';
+import { parseCachedApiKeyData, requireScope } from './auth.js';
+
+test('parseCachedApiKeyData accepts Redis object responses', () => {
+  assert.deepEqual(
+    parseCachedApiKeyData({
+      id: 'key-1',
+      ownerId: 'owner-1',
+      agentId: 'agent-1',
+      scopes: ['memory.read'],
+    }),
+    {
+      id: 'key-1',
+      ownerId: 'owner-1',
+      agentId: 'agent-1',
+      scopes: ['memory.read'],
+    },
+  );
+});
+
+test('parseCachedApiKeyData accepts JSON string responses', () => {
+  assert.deepEqual(
+    parseCachedApiKeyData('{"id":"key-1","ownerId":"owner-1","agentId":"agent-1","scopes":["memory.read"]}'),
+    {
+      id: 'key-1',
+      ownerId: 'owner-1',
+      agentId: 'agent-1',
+      scopes: ['memory.read'],
+    },
+  );
+});
 
 test('requireScope allows requests with the required scope', async () => {
   const app = new Hono();

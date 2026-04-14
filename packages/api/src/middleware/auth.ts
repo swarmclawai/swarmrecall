@@ -4,7 +4,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { owners, apiKeys } from '../db/schema.js';
 import { verifyIdToken } from '../lib/firebase.js';
-import { redisGet, redisSetex } from '../lib/redis.js';
+import { redisDel, redisGet, redisSetex } from '../lib/redis.js';
 import { API_KEY_PREFIX } from '@swarmrecall/shared';
 import type { ApiKeyScope } from '@swarmrecall/shared';
 
@@ -21,6 +21,39 @@ export interface DashboardAuthPayload {
   ownerId: string;
   firebaseUid: string;
   email: string | null;
+}
+
+interface CachedApiKeyData {
+  id: string;
+  ownerId: string;
+  agentId: string | null;
+  scopes: string[];
+}
+
+function isCachedApiKeyData(value: unknown): value is CachedApiKeyData {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === 'string'
+    && typeof candidate.ownerId === 'string'
+    && (typeof candidate.agentId === 'string' || candidate.agentId === null)
+    && Array.isArray(candidate.scopes)
+    && candidate.scopes.every((scope) => typeof scope === 'string');
+}
+
+export function parseCachedApiKeyData(cached: unknown): CachedApiKeyData | null {
+  if (!cached) {
+    return null;
+  }
+
+  try {
+    const parsed = typeof cached === 'string' ? JSON.parse(cached) as unknown : cached;
+    return isCachedApiKeyData(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
 // --- API Key Auth (for agent routes) ---
@@ -42,11 +75,16 @@ export async function apiKeyAuth(c: Context, next: Next) {
   const cacheKey = `apikey:${keyHash}`;
   const cached = await redisGet(cacheKey);
 
-  let keyData: { id: string; ownerId: string; agentId: string | null; scopes: string[] } | null = null;
+  let keyData: CachedApiKeyData | null = null;
 
   if (cached) {
-    keyData = JSON.parse(cached);
-  } else {
+    keyData = parseCachedApiKeyData(cached);
+    if (!keyData) {
+      redisDel(cacheKey).catch(() => {});
+    }
+  }
+
+  if (!keyData) {
     const [row] = await db
       .select()
       .from(apiKeys)

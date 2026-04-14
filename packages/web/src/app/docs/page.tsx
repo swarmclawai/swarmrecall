@@ -8,6 +8,12 @@ const sections = [
     href: '/docs/getting-started',
   },
   {
+    title: '> MCP Server',
+    description:
+      'Connect Claude Desktop, Claude Code, Cursor, and any MCP-compatible agent. 52 tools and 4 resources over stdio.',
+    href: '/docs/mcp',
+  },
+  {
     title: '> API Reference',
     description:
       'Complete reference for every endpoint: registration, memory, knowledge, learnings, skills, owners, agents, and API keys.',

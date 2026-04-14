@@ -29,9 +29,9 @@ export async function connectRedis() {
   }
 }
 
-export async function redisGet(key: string): Promise<string | null> {
+export async function redisGet(key: string): Promise<unknown | null> {
   try {
-    return await getRedis()?.get<string>(key) ?? null;
+    return await getRedis()?.get(key) ?? null;
   } catch {
     return null;
   }

@@ -1,12 +1,12 @@
 {
   "name": "@swarmrecall/web",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3400",
     "build": "next build",
-    "start": "next start --port 3400",
+    "start": "node start.mjs",
     "lint": "eslint . --max-warnings=0",
     "type-check": "tsc --noEmit"
   },

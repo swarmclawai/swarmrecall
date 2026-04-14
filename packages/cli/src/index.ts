@@ -1,27 +1,11 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { SwarmRecallClient } from '@swarmrecall/sdk';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
-
-const CONFIG_DIR = join(homedir(), '.config', 'swarmrecall');
-const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
-
-interface Config {
-  apiKey?: string;
-  baseUrl?: string;
-}
-
-function loadConfig(): Config {
-  if (!existsSync(CONFIG_FILE)) return {};
-  return JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'));
-}
-
-function saveConfig(config: Config) {
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
-}
+import {
+  DEFAULT_API_BASE_URL,
+  loadConfig,
+  saveConfig,
+} from '@swarmrecall/shared/config';
 
 function getClient(): SwarmRecallClient {
   const config = loadConfig();
@@ -43,7 +27,7 @@ const program = new Command();
 program
   .name('swarmrecall')
   .description('SwarmRecall CLI — manage agent memory, knowledge, learnings, and skills')
-  .version('0.1.0');
+  .version('0.3.0');
 
 // --- Register ---
 
@@ -110,7 +94,7 @@ config
   .action(() => {
     const cfg = loadConfig();
     console.log(`API Key: ${cfg.apiKey ? cfg.apiKey.slice(0, 16) + '...' : '(not set)'}`);
-    console.log(`Base URL: ${cfg.baseUrl ?? 'https://api.swarmrecall.ai'}`);
+    console.log(`Base URL: ${cfg.baseUrl ?? DEFAULT_API_BASE_URL}`);
   });
 
 // --- Memory ---
@@ -405,6 +389,31 @@ dream
     if (opts.ops) params.operations = opts.ops.split(',').map((s) => s.trim());
     const result = await client.dream.execute(params);
     output(result);
+  });
+
+// --- MCP ---
+
+program
+  .command('mcp')
+  .description('Run SwarmRecall as an MCP server over stdio for Claude Desktop/Code, Cursor, and other MCP clients')
+  .action(async () => {
+    try {
+      const { startMcpServer } = await import('@swarmrecall/mcp');
+      const server = await startMcpServer();
+      const shutdown = () => {
+        server.close().finally(() => process.exit(0));
+      };
+      process.on('SIGINT', shutdown);
+      process.on('SIGTERM', shutdown);
+    } catch (err) {
+      if ((err as { name?: string }).name === 'MissingApiKeyError') {
+        console.error((err as Error).message);
+        console.error('Run: swarmrecall register --save');
+        process.exit(1);
+      }
+      console.error(`Failed to start MCP server: ${(err as Error).message}`);
+      process.exit(1);
+    }
   });
 
 program.parse();

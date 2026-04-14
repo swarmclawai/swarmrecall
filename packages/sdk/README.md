@@ -55,7 +55,7 @@ Creates a client instance.
 ```typescript
 const client = new SwarmRecallClient({
   apiKey: 'sr_...',                             // required
-  baseUrl: 'https://api.swarmrecall.ai',        // optional, this is the default
+  baseUrl: 'https://swarmrecall-api.onrender.com', // optional, this is the default
 });
 ```
 

@@ -1,7 +1,7 @@
 {
   "name": "swarmrecall",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Hosted agent persistence layer — memory, knowledge, learnings, and skills as a service",
   "scripts": {
     "dev": "turbo dev",
@@ -9,6 +9,11 @@
     "test": "turbo test",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
+    "check": "pnpm -r type-check && pnpm check:release-sync && pnpm check:skill",
+    "check:release-sync": "node scripts/check-release-sync.mjs",
+    "check:skill": "node scripts/check-clawhub-skill.mjs",
+    "release:preflight": "node scripts/release-preflight.mjs",
+    "skill:publish": "node scripts/publish-clawhub-skill.mjs",
     "db:push": "pnpm --filter @swarmrecall/api db:push",
     "db:generate": "pnpm --filter @swarmrecall/api db:generate",
     "db:seed": "pnpm --filter @swarmrecall/api db:seed"
