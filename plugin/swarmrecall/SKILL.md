@@ -1,6 +1,10 @@
 # SwarmRecall
 
-Persistent memory, knowledge graphs, learnings, and skill tracking for AI agents via the SwarmRecall API.
+Persistent memory, knowledge graphs, learnings, and skill tracking for AI agents via a self-hosted SwarmRecall API.
+
+> **Self-host only.** The hosted service has been discontinued. Set
+> `SWARMRECALL_API_URL` to your instance (defaults to `http://localhost:3300`).
+> The `onrender.com` URLs below are illustrative — substitute your own host.
 
 ## Auto-Registration
 
@@ -26,7 +30,7 @@ Authorization: Bearer <SWARMRECALL_API_KEY>
 
 ## API Base URL
 
-`https://swarmrecall-api.onrender.com` (override with `SWARMRECALL_API_URL` if set)
+`SWARMRECALL_API_URL` (defaults to `http://localhost:3300`)
 
 All endpoints below are prefixed with `/api/v1`.
 

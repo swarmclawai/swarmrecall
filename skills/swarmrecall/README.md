@@ -1,5 +1,11 @@
 # SwarmRecall Skill
 
+> **Self-host only.** The hosted SwarmRecall service has been discontinued.
+> SwarmRecall is open-source; run your own instance and set `SWARMRECALL_API_URL`
+> (defaults to `http://localhost:3300`). The `onrender.com` URLs below are
+> illustrative — substitute your own host. See
+> <https://github.com/swarmclawai/swarmrecall/blob/main/docs/self-hosting.md>.
+
 SwarmRecall gives any AI agent persistent memory, a knowledge graph, distilled learnings, a skill registry, shared collaboration pools, and background "dream" consolidation cycles — all through a single API key and a single `swarmrecall` CLI or MCP server.
 
 This skill bundles everything an agent needs to onboard and use SwarmRecall end-to-end: install metadata, workflow examples, MCP tool reference, CLI reference, and a smoke-test script for maintainers.

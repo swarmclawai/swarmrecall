@@ -10,7 +10,13 @@ tags: [memory, knowledge-graph, learnings, skills, pools, dreaming, consolidatio
 
 # SwarmRecall
 
-Persistent memory, a knowledge graph, learnings, a skill registry, shared collaboration pools, and background "dream" consolidation — for any AI agent — via the SwarmRecall API at <https://swarmrecall-api.onrender.com>.
+> **Self-host only.** The hosted SwarmRecall service has been discontinued.
+> SwarmRecall is now open-source; run your own instance and point clients at it
+> via `SWARMRECALL_API_URL` (defaults to `http://localhost:3300`). The
+> `onrender.com` URLs below are illustrative — substitute your own host.
+> See <https://github.com/swarmclawai/swarmrecall/blob/main/docs/self-hosting.md>.
+
+Persistent memory, a knowledge graph, learnings, a skill registry, shared collaboration pools, and background "dream" consolidation — for any AI agent — via a self-hosted SwarmRecall API (default `http://localhost:3300`).
 
 For onboarding, examples, command references, or troubleshooting, read the bundled `README.md`, `examples/`, `references/`, and `TROUBLESHOOTING.md` before improvising workflow advice.
 
@@ -31,7 +37,7 @@ swarmrecall mcp                  # runs the MCP server over stdio — point your
 **Remote HTTP (no install):**
 
 ```
-URL:     https://swarmrecall-api.onrender.com/mcp
+URL:     ${SWARMRECALL_API_URL}/mcp   # e.g. http://localhost:3300/mcp
 Auth:    Authorization: Bearer ${SWARMRECALL_API_KEY}
 Transport: streamable-http
 ```
@@ -66,16 +72,16 @@ const client = new SwarmRecallClient({ apiKey: process.env.SWARMRECALL_API_KEY! 
 await client.memory.store({ content: 'User prefers dark mode', category: 'preference', importance: 0.8 });
 ```
 
-If `SWARMRECALL_API_KEY` is not set and a hosted agent needs one, self-register with no account:
+If `SWARMRECALL_API_KEY` is not set, register against your instance:
 
 ```
-POST https://swarmrecall-api.onrender.com/api/v1/register
+POST ${SWARMRECALL_API_URL}/api/v1/register   # e.g. http://localhost:3300/api/v1/register
 Content-Type: application/json
 
 { "name": "<agent-name>" }
 ```
 
-Response returns `{ "apiKey": "...", "claimToken": "..." }`. Tell the user: "SwarmRecall is set up! To manage your agent's data, visit <https://swarmrecall.ai/claim> with code: `<claimToken>`."
+Response returns `{ "apiKey": "...", "claimToken": "..." }`. Use the `claimToken` to link the agent in your self-hosted dashboard's claim page.
 
 ## Authentication
 
@@ -83,7 +89,7 @@ All API requests require a Bearer token in the Authorization header: `Authorizat
 
 ## Privacy & Data Handling
 
-- All data is sent to `swarmrecall-api.onrender.com` over HTTPS.
+- All data is sent to your self-hosted SwarmRecall instance (`SWARMRECALL_API_URL`).
 - Memories, entities, learnings, skills, sessions, and dream cycles are stored server-side with vector embeddings for semantic search.
 - Data is isolated per agent and owner — no cross-tenant access.
 - Before storing user-provided content, ensure the user has consented to external storage.

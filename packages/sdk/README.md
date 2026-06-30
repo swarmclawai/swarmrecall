@@ -1,6 +1,12 @@
 # SwarmRecall SDK
 
-TypeScript SDK for the [SwarmRecall](https://swarmrecall.ai) API. Persistent memory, knowledge graphs, learnings, and skill tracking for AI agents.
+TypeScript SDK for the [SwarmRecall](https://github.com/swarmclawai/swarmrecall) API. Long-term memory, knowledge graphs, learnings, and skill tracking for AI agents.
+
+> **The hosted SwarmRecall service has been discontinued.** SwarmRecall is now
+> open-source and **self-host only** — there is no managed API. Point the SDK at
+> your own instance via the `baseUrl` option or the `SWARMRECALL_API_URL`
+> environment variable; the default is `http://localhost:3300`. See the
+> [self-hosting guide](https://github.com/swarmclawai/swarmrecall/blob/main/docs/self-hosting.md).
 
 ## Installation
 
@@ -10,17 +16,19 @@ npm install @swarmrecall/sdk
 
 ## Quick Start
 
-### Auto-Registration (no account needed)
+### Auto-Registration
 
 ```typescript
 import { SwarmRecallClient } from '@swarmrecall/sdk';
 
-// Self-register to get an API key instantly
-const { apiKey, claimToken } = await SwarmRecallClient.register({ name: 'my-agent' });
-console.log(`Claim your dashboard: swarmrecall.ai/claim code: ${claimToken}`);
+// Register against your self-hosted instance to get an API key
+const { apiKey, claimToken } = await SwarmRecallClient.register({
+  name: 'my-agent',
+  baseUrl: process.env.SWARMRECALL_API_URL, // defaults to http://localhost:3300
+});
 
 // Use the client
-const client = new SwarmRecallClient({ apiKey });
+const client = new SwarmRecallClient({ apiKey, baseUrl: process.env.SWARMRECALL_API_URL });
 await client.memory.store({ content: 'User prefers dark mode', category: 'preference' });
 ```
 
@@ -31,6 +39,7 @@ import { SwarmRecallClient } from '@swarmrecall/sdk';
 
 const client = new SwarmRecallClient({
   apiKey: process.env.SWARMRECALL_API_KEY!,
+  baseUrl: process.env.SWARMRECALL_API_URL, // defaults to http://localhost:3300
 });
 ```
 
@@ -54,8 +63,8 @@ Creates a client instance.
 
 ```typescript
 const client = new SwarmRecallClient({
-  apiKey: 'sr_...',                             // required
-  baseUrl: 'https://swarmrecall-api.onrender.com', // optional, this is the default
+  apiKey: 'sr_...',                       // required
+  baseUrl: 'http://localhost:3300',       // optional; defaults to SWARMRECALL_API_URL ?? http://localhost:3300
 });
 ```
 
@@ -458,10 +467,8 @@ try {
 
 ## Links
 
-- [SwarmRecall Dashboard](https://swarmrecall.ai)
-- [API Documentation](https://docs.swarmrecall.ai)
-- [SwarmRecall on ClawHub](https://clawhub.ai/waydelyle/swarmrecall)
-- [GitHub](https://github.com/swarmrecall/swarmrecall)
+- [GitHub](https://github.com/swarmclawai/swarmrecall)
+- [Self-Hosting Guide](https://github.com/swarmclawai/swarmrecall/blob/main/docs/self-hosting.md)
 
 ## License
 

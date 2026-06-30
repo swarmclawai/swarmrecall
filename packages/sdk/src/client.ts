@@ -18,6 +18,19 @@ import type {
   SearchResult,
 } from '@swarmrecall/shared';
 
+/** Default API base URL when no baseUrl option is provided. */
+const DEFAULT_BASE_URL = 'http://localhost:3300';
+
+/**
+ * Read an env var without depending on Node's `process` type definitions, so
+ * the SDK stays isomorphic (works in Node and the browser). Returns undefined
+ * when no process/env is available.
+ */
+function readEnv(name: string): string | undefined {
+  const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
+  return proc?.env?.[name];
+}
+
 export interface SwarmRecallClientOptions {
   apiKey: string;
   baseUrl?: string;
@@ -101,7 +114,7 @@ export class SwarmRecallClient {
   readonly dream: DreamOperations;
 
   constructor(options: SwarmRecallClientOptions) {
-    this.baseUrl = (options.baseUrl ?? 'https://swarmrecall-api.onrender.com').replace(/\/+$/, '');
+    this.baseUrl = (options.baseUrl ?? readEnv('SWARMRECALL_API_URL') ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
     this.apiKey = options.apiKey;
     this.memory = new MemoryOperations(this);
     this.knowledge = new KnowledgeOperations(this);
@@ -117,7 +130,7 @@ export class SwarmRecallClient {
    * the agent to a user account.
    */
   static async register(options?: RegisterOptions): Promise<RegisterResponse> {
-    const url = (options?.baseUrl ?? 'https://swarmrecall-api.onrender.com').replace(/\/+$/, '');
+    const url = (options?.baseUrl ?? readEnv('SWARMRECALL_API_URL') ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
     const res = await fetch(`${url}/api/v1/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

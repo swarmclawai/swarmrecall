@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { NetworkDropdown } from '@/components/NetworkDropdown';
 
+const GITHUB_URL = 'https://github.com/swarmclawai/swarmrecall';
+const SELF_HOST_URL =
+  'https://github.com/swarmclawai/swarmrecall/blob/main/docs/self-hosting.md';
 const DISCORD_URL = 'https://discord.gg/sbEavS8cPV';
 
 const features = [
@@ -29,21 +32,21 @@ const features = [
 const steps = [
   {
     num: '01',
-    title: 'Install the skill',
+    title: 'Clone the repo',
     description:
-      'Add the SwarmRecall skill to your agent from ClawHub. One click, zero configuration.',
+      'Pull SwarmRecall from GitHub. It is a pnpm + Turborepo monorepo: API, dashboard, SDK, and CLI.',
   },
   {
     num: '02',
-    title: 'Agent auto-registers',
+    title: 'Run the stack',
     description:
-      'On first use, your agent registers itself with SwarmRecall and receives a unique identity.',
+      'docker compose up brings up Postgres + pgvector and Meilisearch. pnpm dev starts the API on :3300.',
   },
   {
     num: '03',
-    title: 'Claim your dashboard',
+    title: 'Point your agents at it',
     description:
-      'Your agent gives you a claim code. Enter it at swarmrecall.ai/claim to link your dashboard.',
+      'Set SWARMRECALL_API_URL to your instance. The SDK and CLI default to http://localhost:3300.',
   },
 ];
 
@@ -75,12 +78,14 @@ export default function HomePage() {
             >
               Features
             </Link>
-            <Link
-              href="/docs"
+            <a
+              href={SELF_HOST_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-sm text-[#888] hover:text-[#E0E0E0] transition-colors font-mono"
             >
-              Docs
-            </Link>
+              Self-Host
+            </a>
             <a
               href={DISCORD_URL}
               target="_blank"
@@ -89,21 +94,15 @@ export default function HomePage() {
             >
               Discord
             </a>
+            <NetworkDropdown />
             <a
-              href="https://github.com/swarmclawai/swarmrecall"
+              href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-[#888] hover:text-[#E0E0E0] transition-colors font-mono"
+              className="text-sm font-mono font-medium text-[#00FF88] border border-[#00FF88] px-4 py-1.5 hover:bg-[#00FF88] hover:text-[#0A0A0A] transition-colors"
             >
               GitHub
             </a>
-            <NetworkDropdown />
-            <Link
-              href="/login"
-              className="text-sm font-mono font-medium text-[#00FF88] border border-[#00FF88] px-4 py-1.5 hover:bg-[#00FF88] hover:text-[#0A0A0A] transition-colors"
-            >
-              Sign In
-            </Link>
           </div>
         </div>
       </nav>
@@ -112,35 +111,49 @@ export default function HomePage() {
       <section className="relative z-10 pt-32 pb-36 scanlines">
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <p className="text-sm font-mono text-[#555] mb-6 tracking-wide">
-            $ swarmrecall --version 1.0
+            $ git clone swarmclawai/swarmrecall
           </p>
 
+          <div className="inline-flex items-center gap-2 mb-6 border border-[#00FF88]/40 bg-[#00FF88]/5 px-3 py-1">
+            <span className="w-1.5 h-1.5 bg-[#00FF88] inline-block" />
+            <span className="text-xs font-mono tracking-wide text-[#00FF88]">
+              NOW OPEN SOURCE · SELF-HOST ONLY
+            </span>
+          </div>
+
           <h1 className="font-mono font-bold text-3xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.1] mb-4 max-w-4xl">
-            <span className="text-[#00FF88]">&gt;</span> Your agents remember{' '}
-            <span className="cursor-blink">everything</span>
+            <span className="text-[#00FF88]">&gt;</span> Long-term memory for
+            your <span className="cursor-blink">agents</span>
           </h1>
 
-          <p className="text-base sm:text-lg text-[#888] max-w-2xl mb-12 leading-relaxed font-body">
-            Memory, knowledge, learnings, and skills as a service for AI agents.
-            Persistent context that survives across sessions, providers, and
-            platforms.
+          <p className="text-base sm:text-lg text-[#888] max-w-2xl mb-8 leading-relaxed font-body">
+            Memory, knowledge, learnings, and skills for AI agents. Persistent
+            context that survives across sessions, providers, and platforms —
+            open-source and yours to run.
+          </p>
+
+          <p className="text-sm text-[#666] max-w-2xl mb-12 leading-relaxed font-body">
+            The hosted SwarmRecall service has been discontinued. The full
+            stack is open-source: clone it, run it, own your data.
           </p>
 
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:flex-wrap">
             <a
-              href="https://clawhub.ai/waydelyle/swarmrecall"
+              href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="h-11 px-8 text-sm font-mono font-semibold bg-[#00FF88] text-[#0A0A0A] border border-[#00FF88] hover:bg-transparent hover:text-[#00FF88] transition-colors flex items-center justify-center"
             >
-              Install from ClawHub
+              View on GitHub
             </a>
-            <Link
-              href="/docs"
+            <a
+              href={SELF_HOST_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="h-11 px-8 text-sm font-mono font-semibold border border-[#333] text-[#E0E0E0] hover:border-[#555] transition-colors flex items-center justify-center"
             >
-              Read Docs
-            </Link>
+              Self-Host It
+            </a>
             <a
               href={DISCORD_URL}
               target="_blank"
@@ -153,25 +166,22 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── How it works ─────────────────────────── */}
+      {/* ── Get started ──────────────────────────── */}
       <section className="relative z-10 py-24 border-y border-[#333]">
         <div className="max-w-6xl mx-auto px-6">
           <div className="mb-14">
             <h2 className="font-mono font-bold text-2xl sm:text-3xl tracking-tight text-[#E0E0E0] mb-3">
-              <span className="text-[#555]">#</span> How it works
+              <span className="text-[#555]">#</span> Run your own instance
             </h2>
             <p className="text-[#888] text-sm font-body max-w-lg">
-              No API keys to configure upfront. Your agent handles registration
-              automatically.
+              Self-hosting takes three steps. Everything runs locally with
+              Docker — no managed service required.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-[#333] border border-[#333]">
             {steps.map((step) => (
-              <div
-                key={step.num}
-                className="bg-[#111] p-6"
-              >
+              <div key={step.num} className="bg-[#111] p-6">
                 <div className="font-mono text-sm text-[#00FF88] mb-3">
                   <span className="text-[#555]">&gt;</span> {step.num}
                 </div>
@@ -202,10 +212,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[#333] border border-[#333]">
             {features.map((feature) => (
-              <div
-                key={feature.prefix}
-                className="bg-[#111] p-6"
-              >
+              <div key={feature.prefix} className="bg-[#111] p-6">
                 <h3 className="font-mono font-bold text-[#00FF88] text-lg mb-3">
                   {feature.prefix}
                 </h3>
@@ -227,7 +234,8 @@ export default function HomePage() {
               results
             </h2>
             <p className="text-[#888] text-sm font-body max-w-lg">
-              A few lines of code give your agent permanent memory.
+              A few lines of code give your agent permanent memory — pointed at
+              your own instance.
             </p>
           </div>
 
@@ -249,7 +257,7 @@ export default function HomePage() {
                     {`// Initialize SwarmRecall\n`}
                   </span>
                   <span className="text-[#FF6B35]">import</span>
-                  {` { SwarmRecall } `}
+                  {` { SwarmRecallClient } `}
                   <span className="text-[#FF6B35]">from</span>
                   <span className="text-[#00FF88]">
                     {` '@swarmrecall/sdk'`}
@@ -258,9 +266,13 @@ export default function HomePage() {
                   <span className="text-[#FF6B35]">const</span>
                   {` recall = `}
                   <span className="text-[#FF6B35]">new</span>
-                  {` SwarmRecall({\n  apiKey: process.env.`}
+                  {` SwarmRecallClient({\n  apiKey: process.env.`}
                   <span className="text-[#00FF88]">SWARMRECALL_API_KEY</span>
-                  {`,\n});\n\n`}
+                  {`,\n  baseUrl: process.env.`}
+                  <span className="text-[#00FF88]">SWARMRECALL_API_URL</span>
+                  {`, `}
+                  <span className="text-[#555]">{`// → http://localhost:3300`}</span>
+                  {`\n});\n\n`}
                   <span className="text-[#555]">
                     {`// Store a memory\n`}
                   </span>
@@ -269,11 +281,9 @@ export default function HomePage() {
                   <span className="text-[#00FF88]">store</span>
                   {`({\n  content: `}
                   <span className="text-[#FF6B35]">{`"User prefers dark mode"`}</span>
-                  {`,\n  tags: [`}
+                  {`,\n  category: `}
                   <span className="text-[#FF6B35]">{`"preference"`}</span>
-                  {`, `}
-                  <span className="text-[#FF6B35]">{`"ui"`}</span>
-                  {`],\n});\n\n`}
+                  {`,\n});\n\n`}
                   <span className="text-[#555]">
                     {`// Search memories semantically\n`}
                   </span>
@@ -292,17 +302,34 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Social proof ─────────────────────────── */}
+      {/* ── Open source CTA ──────────────────────── */}
       <section className="relative z-10 py-20">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-xs font-mono tracking-[0.2em] uppercase text-[#555] mb-4">
-            {'// status'}
+            {'// open source'}
           </p>
-          <p className="text-xl sm:text-2xl font-mono font-bold text-[#888]">
-            Replacing{' '}
-            <span className="text-[#00FF88]">500k+</span>{' '}
-            ClawHub skill downloads
+          <p className="text-xl sm:text-2xl font-mono font-bold text-[#888] mb-8">
+            MIT licensed. <span className="text-[#00FF88]">Self-host it</span>,
+            fork it, make it yours.
           </p>
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-11 px-8 text-sm font-mono font-semibold bg-[#00FF88] text-[#0A0A0A] border border-[#00FF88] hover:bg-transparent hover:text-[#00FF88] transition-colors flex items-center justify-center"
+            >
+              Star on GitHub
+            </a>
+            <a
+              href={SELF_HOST_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-11 px-8 text-sm font-mono font-semibold border border-[#333] text-[#E0E0E0] hover:border-[#555] transition-colors flex items-center justify-center"
+            >
+              Read the Self-Hosting Guide
+            </a>
+          </div>
         </div>
       </section>
 
@@ -311,20 +338,22 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-8 text-sm font-mono">
-              <span className="text-[#555]">swarmrecall.ai</span>
-              <Link
-                href="/docs"
-                className="text-[#888] hover:text-[#E0E0E0] transition-colors"
-              >
-                Docs
-              </Link>
+              <span className="text-[#555]">SwarmRecall</span>
               <a
-                href="https://clawhub.ai/waydelyle/swarmrecall"
+                href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#888] hover:text-[#E0E0E0] transition-colors"
               >
-                ClawHub
+                GitHub
+              </a>
+              <a
+                href={SELF_HOST_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#888] hover:text-[#E0E0E0] transition-colors"
+              >
+                Self-Host
               </a>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3 text-sm font-mono">
@@ -342,7 +371,7 @@ export default function HomePage() {
               ))}
             </div>
             <span className="text-xs text-[#555] font-mono">
-              &copy; {new Date().getFullYear()} SwarmRecall
+              &copy; {new Date().getFullYear()} SwarmRecall · MIT
             </span>
           </div>
         </div>

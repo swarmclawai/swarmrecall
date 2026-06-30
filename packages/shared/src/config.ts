@@ -2,7 +2,8 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-export const DEFAULT_API_BASE_URL = "https://swarmrecall-api.onrender.com";
+export const DEFAULT_API_BASE_URL =
+  process.env.SWARMRECALL_API_URL ?? "http://localhost:3300";
 
 const CONFIG_DIR = join(homedir(), ".config", "swarmrecall");
 const CONFIG_FILE = join(CONFIG_DIR, "config.json");

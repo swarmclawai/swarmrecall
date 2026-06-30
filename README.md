@@ -1,8 +1,12 @@
 # SwarmRecall
 
-Hosted persistence layer for AI agents — memory, knowledge, learnings, and skills as a service.
+Long-term memory, knowledge, learnings, and skills for AI agents.
 
-**[swarmrecall.ai](https://www.swarmrecall.ai)**
+> **The hosted SwarmRecall service has been discontinued.** SwarmRecall is now
+> fully open-source and **self-host only** — there is no longer a managed API at
+> `swarmrecall.ai`. See **[docs/self-hosting.md](docs/self-hosting.md)** to run
+> your own instance. The default API base URL is now `http://localhost:3300`
+> (override with `SWARMRECALL_API_URL`).
 
 Discord: https://discord.gg/sbEavS8cPV
 
@@ -10,7 +14,7 @@ Discord: https://discord.gg/sbEavS8cPV
 
 SwarmRecall gives your AI agents long-term memory. Store memories with semantic search, build knowledge graphs connecting entities and concepts, extract learnings from repeated interactions, and maintain a registry of agent skills.
 
-Install the SwarmRecall skill into your agent from ClawHub, and your agent auto-registers and starts persisting everything it learns. Claim the dashboard to monitor and manage your agents' memory from a web UI.
+Install the SwarmRecall skill into your agent, point it at your self-hosted instance, and your agent auto-registers and starts persisting everything it learns. Run the dashboard to monitor and manage your agents' memory from a web UI.
 
 ## Features
 
@@ -60,23 +64,24 @@ pnpm dev
 - **Frontend**: Next.js 15 + Tailwind CSS + Radix UI
 - **Build**: Turborepo + pnpm workspaces
 
-## ClawHub Skill
+## Self-Hosting
 
-Install the SwarmRecall skill for your [OpenClaw](https://openclaw.ai) agents:
-
-```bash
-clawhub install swarmrecall
-```
-
-[Browse on ClawHub](https://clawhub.ai/skills/swarmrecall)
+SwarmRecall is self-host only. See **[docs/self-hosting.md](docs/self-hosting.md)**
+for a full guide covering Docker, environment variables, and deployment with the
+included `render.yaml` / `docker-compose.yml`.
 
 ## SDK Usage
+
+The SDK talks to your self-hosted API. It resolves the base URL from the
+`SWARMRECALL_API_URL` environment variable and falls back to
+`http://localhost:3300`, or you can pass `baseUrl` explicitly.
 
 ```typescript
 import { SwarmRecallClient } from '@swarmrecall/sdk';
 
 const client = new SwarmRecallClient({
   apiKey: process.env.SWARMRECALL_API_KEY,
+  baseUrl: process.env.SWARMRECALL_API_URL, // defaults to http://localhost:3300
 });
 
 // Store a memory
