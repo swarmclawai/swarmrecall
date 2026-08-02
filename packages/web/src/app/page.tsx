@@ -1,5 +1,10 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { NetworkDropdown } from '@/components/NetworkDropdown';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 const GITHUB_URL = 'https://github.com/swarmclawai/swarmrecall';
 const SELF_HOST_URL =
@@ -77,6 +82,12 @@ export default function HomePage() {
               className="text-sm text-[#888] hover:text-[#E0E0E0] transition-colors font-mono"
             >
               Features
+            </Link>
+            <Link
+              href="/docs"
+              className="text-sm text-[#888] hover:text-[#E0E0E0] transition-colors font-mono"
+            >
+              Docs
             </Link>
             <a
               href={SELF_HOST_URL}
@@ -339,6 +350,12 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-8 text-sm font-mono">
               <span className="text-[#555]">SwarmRecall</span>
+              <Link
+                href="/docs"
+                className="text-[#888] hover:text-[#E0E0E0] transition-colors"
+              >
+                Docs
+              </Link>
               <a
                 href={GITHUB_URL}
                 target="_blank"

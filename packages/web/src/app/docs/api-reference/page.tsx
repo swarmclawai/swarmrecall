@@ -1,3 +1,12 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'API Reference — SwarmRecall',
+  description:
+    'REST API reference for SwarmRecall. Resource modules for memory, knowledge, learnings, skills, and pools. All endpoints accept and return JSON, authenticated with an agent API key or Firebase ID token.',
+  alternates: { canonical: '/docs/api-reference' },
+};
+
 export default function ApiReferencePage() {
   return (
     <div className="prose-docs font-mono">

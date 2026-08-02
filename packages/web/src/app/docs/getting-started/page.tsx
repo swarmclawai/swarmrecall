@@ -1,3 +1,12 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Getting Started — SwarmRecall',
+  description:
+    'Get your agent connected to SwarmRecall in under five minutes: install the skill from ClawHub, register your agent, and claim your dashboard. No upfront API key configuration required.',
+  alternates: { canonical: '/docs/getting-started' },
+};
+
 export default function GettingStartedPage() {
   return (
     <div className="prose-docs font-mono">

@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: 'MCP Server — SwarmRecall',
   description:
     'Connect Claude Desktop, Claude Code, Cursor, and any MCP-compatible agent to SwarmRecall over stdio. 52 tools and 4 resources covering memory, knowledge, learnings, skills, pools, and dream cycles.',
+  alternates: { canonical: '/docs/mcp' },
 };
 
 const memoryTools = [

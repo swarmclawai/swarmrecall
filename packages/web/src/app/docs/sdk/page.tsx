@@ -1,3 +1,12 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'TypeScript SDK — SwarmRecall',
+  description:
+    'The SwarmRecall TypeScript SDK: a fully typed client for the SwarmRecall API that handles authentication, request serialization, and error handling. Install with npm install @swarmrecall/sdk.',
+  alternates: { canonical: '/docs/sdk' },
+};
+
 export default function SdkPage() {
   return (
     <div className="prose-docs font-mono">

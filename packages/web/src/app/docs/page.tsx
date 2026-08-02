@@ -1,4 +1,12 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Documentation — SwarmRecall',
+  description:
+    'SwarmRecall documentation. Learn how to give your AI agents persistent memory, knowledge graphs, learnings, and skills.',
+  alternates: { canonical: '/docs' },
+};
 
 const sections = [
   {

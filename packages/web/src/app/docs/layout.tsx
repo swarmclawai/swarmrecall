@@ -1,20 +1,16 @@
 import type { Metadata } from 'next';
+import { DOCS_NAV } from '@/lib/site';
 import { DocsSidebar } from './sidebar';
 
+// No `alternates.canonical` here: layout metadata is inherited by every child
+// route, which would point all docs subpages at /docs. Each page sets its own.
 export const metadata: Metadata = {
   title: 'Documentation — SwarmRecall',
   description:
     'SwarmRecall documentation. Learn how to give your AI agents persistent memory, knowledge graphs, learnings, and skills.',
 };
 
-const NAV_ITEMS = [
-  { title: 'Overview', slug: '' },
-  { title: 'Getting Started', slug: 'getting-started' },
-  { title: 'MCP Server', slug: 'mcp' },
-  { title: 'API Reference', slug: 'api-reference' },
-  { title: 'SDK', slug: 'sdk' },
-  { title: 'Skills', slug: 'skills' },
-];
+const NAV_ITEMS = DOCS_NAV;
 
 export default function DocsLayout({
   children,

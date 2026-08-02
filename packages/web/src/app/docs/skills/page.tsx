@@ -1,3 +1,12 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Agent Skills — SwarmRecall',
+  description:
+    'SwarmRecall skills on ClawHub. Each skill adds a specific capability — memory, knowledge, learnings — to your SwarmClaw agent. Install with one click or via the swarmclaw CLI.',
+  alternates: { canonical: '/docs/skills' },
+};
+
 export default function SkillsPage() {
   return (
     <div className="prose-docs font-mono">
